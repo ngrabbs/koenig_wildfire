@@ -21,12 +21,10 @@ manual is wrong — please tell whoever handed you the gear, and check
 that you're on the latest version (the version line at the top of this
 PDF tells you when it was built).
 
-> **Status — Phase 3 (three cameras through the mux).**
-> Each Capture click now grabs one frame from each of the three
-> channels (cam0 / 762 nm, cam1 / 766 nm, cam2 / 770 nm) and saves
-> them with a shared timestamp so they sort together in the gallery.
-> Burst-of-N, timer-mode auto-capture, settings UI, and focus mode
-> are still placeholders — Phases 4 and 5.
+> **Status — Phase 4b (settings + burst + timer).**
+> Camera settings, burst count, and auto-capture timer are live.
+> Focus mode + AP-fallback wifi + storage display land in Phases 4c
+> and 5.
 
 # Quick start
 
@@ -103,11 +101,40 @@ the troubleshooting section.
 
 ### Burst capture
 
-*To be filled in after Phase 4.*
+Open the **Camera settings** panel and set **Burst count** to however
+many shots you want each click to take. Save. Now each click of
+**Capture** runs that many three-channel bursts back-to-back. The
+file gallery shows them all, grouped by burst (each burst has its own
+timestamp prefix; cam0/cam1/cam2 within a burst share that prefix).
+
+Roughly **~1.5 seconds per burst** once the system is warmed up. So a
+burst-of-10 takes ~15 seconds and produces 30 images. A burst-of-100
+takes ~150 seconds and produces 300 images. The browser will appear
+to "hang" for that whole time — that's normal, don't reload the page
+while it's working.
 
 ### Timed (interval) capture
 
-*To be filled in after Phase 4.*
+In the **Camera settings** panel under **Capture behaviour**, tick
+**Auto-capture every** and set the interval (number + seconds/minutes
+dropdown). Save. The Pi will start capturing automatically at that
+interval and keep going until you uncheck the box and save again.
+
+A yellow banner at the top of the page tells you the timer is on, and
+restates the schedule:
+
+> Auto-capture timer is **on** — capturing one 3-shot burst every 30 seconds.
+
+The timer **survives a reboot** — if you leave it on and power the Pi
+down, it'll resume capturing as soon as it comes back up. That's
+intentional for "set it and forget it" drone use.
+
+The timer fires `burst_count` bursts on each tick. So `burst_count=5`
++ timer every 2 minutes = 15 images every two minutes.
+
+If a tick happens while the previous capture is still running (e.g.
+burst_count is large and the interval is short), the new tick is
+quietly dropped — no images are queued or duplicated.
 
 ## Reviewing pictures
 
@@ -201,7 +228,14 @@ three:
 
 ## "It says 'busy' when I press capture"
 
-*(placeholder)*
+This means a capture is already in progress — either an earlier click
+hasn't finished, or the auto-capture timer just fired and is in the
+middle of its run. Wait a few seconds and try again. Nothing's broken.
+
+If you're using a large burst count or a short timer interval and you
+constantly see this, either lower the burst count or lengthen the
+interval so the system has time to finish one capture before the next
+trigger comes.
 
 ## "I'm out of disk space"
 

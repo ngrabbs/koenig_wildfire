@@ -59,9 +59,9 @@ as of Phase 2.
 3. **System packages.** SSH'd in, run:
    ```bash
    sudo apt update && sudo apt full-upgrade -y
-   sudo apt install -y git python3-picamera2 python3-flask i2c-tools
+   sudo apt install -y git python3-picamera2 python3-flask \
+                       python3-apscheduler i2c-tools device-tree-compiler
    ```
-   That gets you everything Phase 2 needs.
 4. **Enable I²C** (needed for Phase 3 mux — fine to do now):
    ```bash
    sudo raspi-config nonint do_i2c 0
