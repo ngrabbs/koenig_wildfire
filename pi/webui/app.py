@@ -2,7 +2,7 @@
 127.0.0.1:8001 and proxies images so the daemon stays loopback-only.
 """
 from __future__ import annotations
-from flask import Flask, render_template, redirect, request, url_for, Response, abort, flash
+from flask import Flask, render_template, redirect, request, url_for, Response, abort, flash, stream_with_context
 import json
 import os
 import urllib.error
@@ -21,6 +21,9 @@ app.secret_key = os.environ.get("KOENIG_WEBUI_SECRET", "koenig-wildfire-ui")
 CAMERA_PORTS = [0, 1, 2]
 CONTROL_NAMES = list(CONTROL_SCHEMA.keys())
 BOOL_CONTROLS = {n for n, spec in CONTROL_SCHEMA.items() if spec["type"] is bool}
+
+# Display wavelength per port. Matches CHANNELS in pi/daemon/camera.py.
+PORT_WAVELENGTH = {0: 762, 1: 766, 2: 770}
 
 
 def _request(path: str, method: str = "GET", body_bytes: bytes | None = None,
@@ -169,8 +172,61 @@ def img(image_id: str):
     return Response(raw, mimetype=ctype)
 
 
+@app.get("/focus/<int:port>")
+def focus_page(port: int):
+    if port not in CAMERA_PORTS:
+        abort(404)
+    raw, _, status = _request(f"/focus/{port}/start", "POST")
+    if status == 409:
+        flash("Another capture or focus is already running.", "error")
+        return redirect(url_for("index"))
+    if status >= 400:
+        flash(f"Could not start focus mode (HTTP {status}).", "error")
+        return redirect(url_for("index"))
+    return render_template(
+        "focus.html",
+        port=port,
+        wavelength=PORT_WAVELENGTH.get(port, "?"),
+    )
+
+
+@app.get("/focus/stream")
+def focus_stream():
+    """Proxy the daemon's long-lived MJPEG stream to the browser. When the
+    browser disconnects, our generator stops, urlopen() closes, the daemon's
+    generator hits GeneratorExit and stops focus → camera released."""
+    req = urllib.request.Request(f"{DAEMON_URL}/focus/stream")
+    try:
+        resp = urllib.request.urlopen(req, timeout=None)
+    except urllib.error.HTTPError as e:
+        abort(e.code)
+
+    ctype = resp.headers.get("Content-Type", "multipart/x-mixed-replace; boundary=frame")
+
+    def gen():
+        try:
+            while True:
+                chunk = resp.read(8192)
+                if not chunk:
+                    break
+                yield chunk
+        finally:
+            try:
+                resp.close()
+            except Exception:
+                pass
+
+    return Response(stream_with_context(gen()), mimetype=ctype)
+
+
+@app.post("/focus/stop")
+def focus_stop():
+    _request("/focus/stop", "POST")
+    return redirect(url_for("index"))
+
+
 def main():
-    app.run(host=LISTEN_HOST, port=LISTEN_PORT)
+    app.run(host=LISTEN_HOST, port=LISTEN_PORT, threaded=True)
 
 
 if __name__ == "__main__":

@@ -53,6 +53,8 @@
              border-radius: 6px; border: 1px solid transparent; }
     button.capture { background: #1f6feb; color: white; border-color: #1f6feb; }
     button.capture:hover { background: #1a5fcc; }
+    button.focus   { background: white; color: #1f6feb; border-color: #1f6feb; }
+    button.focus:hover { background: #eaf2ff; }
     button.save    { background: #2c8a3a; color: white; border-color: #2c8a3a; }
     button.save:hover { background: #266e30; }
     button.danger  { background: white; color: #c0392b; border-color: #c0392b; }
@@ -225,6 +227,12 @@
     <form action="/capture" method="post">
       <button class="capture" type="submit">Capture</button>
     </form>
+    {% for port in camera_ports %}
+    <form action="/focus/{{ port }}" method="get">
+      <button class="focus" type="submit">Focus cam {{ port }}
+        ({% if port == 0 %}762{% elif port == 1 %}766{% else %}770{% endif %} nm)</button>
+    </form>
+    {% endfor %}
     {% if images %}
     <form action="/clear" method="post"
           onsubmit="return confirm('Delete all {{ images|length }} images?');">

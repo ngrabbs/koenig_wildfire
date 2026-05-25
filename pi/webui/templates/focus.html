@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Focus — Camera {{ port }}</title>
+  <style>
+    :root { color-scheme: dark; }
+    html, body { margin: 0; padding: 0; background: #000; color: #eee;
+                 font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+                 height: 100%; }
+    .page { display: flex; flex-direction: column; height: 100vh; }
+    header { padding: 0.6em 1em; background: #111; display: flex;
+             align-items: center; gap: 1em; border-bottom: 1px solid #333; }
+    header h1 { font-size: 1.1em; margin: 0; flex: 1; }
+    header .hint { color: #aaa; font-size: 0.9em; }
+    form.exit { margin: 0; }
+    button.exit { font-size: 1em; padding: 0.55em 1.2em; cursor: pointer;
+                  border: 1px solid #c0392b; background: #c0392b; color: white;
+                  border-radius: 6px; }
+    button.exit:hover { background: #e23636; }
+    .stage { flex: 1; display: flex; align-items: center; justify-content: center;
+             overflow: hidden; padding: 0.5em; }
+    .stage img { max-width: 100%; max-height: 100%; object-fit: contain;
+                 background: #000; }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <header>
+      <h1>Focus mode &mdash; Camera {{ port }} ({{ wavelength }} nm)</h1>
+      <span class="hint">Turn the lens until the image is sharp, then exit.</span>
+      <form class="exit" action="/focus/stop" method="post">
+        <button class="exit" type="submit">Exit focus</button>
+      </form>
+    </header>
+    <div class="stage">
+      <img src="/focus/stream" alt="live preview from camera {{ port }}" />
+    </div>
+  </div>
+</body>
+</html>

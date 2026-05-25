@@ -10,11 +10,14 @@ Endpoints (Phase 4):
   GET    /disk              {total, used, free} bytes
   GET    /settings          full settings JSON
   PUT    /settings          partial update, validates, persists, reschedules timer
+  POST   /focus/<port>/start  acquire camera for live preview (409 if busy)
+  GET    /focus/stream      long-lived multipart/x-mixed-replace MJPEG
+  POST   /focus/stop        end any active focus session
 
 A background APScheduler runs the timer when settings.timer.enabled is true,
 firing capture_bursts(burst_count) at settings.timer.interval_seconds. If a
-capture is already in flight (manual or scheduled), the new attempt returns
-BusyError (HTTP 409 for manual; silently dropped for scheduled).
+capture is already in flight (manual, scheduled, or focus), the new attempt
+returns BusyError (HTTP 409 for manual; silently dropped for scheduled).
 """
 from __future__ import annotations
 import atexit
@@ -23,7 +26,7 @@ import os
 from pathlib import Path
 
 from apscheduler.schedulers.background import BackgroundScheduler
-from flask import Flask, jsonify, request, send_file, abort
+from flask import Flask, jsonify, request, send_file, abort, Response
 
 from .camera import BusyError, Cameras
 from .store import ImageStore
@@ -100,6 +103,7 @@ def healthz():
         store=str(store.root),
         settings=str(settings.path),
         timer_active=scheduler.get_job(_TIMER_JOB_ID) is not None,
+        focus_port=cameras.focus_port(),
     )
 
 
@@ -169,10 +173,57 @@ def update_settings():
     return jsonify(updated)
 
 
+@app.post("/focus/<int:port>/start")
+def focus_start(port: int):
+    try:
+        cameras.start_focus(port, controls=settings.controls_for(port))
+    except BusyError as e:
+        return jsonify(error=str(e), busy=True), 409
+    except ValueError as e:
+        return jsonify(error=str(e)), 400
+    return jsonify(focus_port=port)
+
+
+@app.get("/focus/stream")
+def focus_stream():
+    port = cameras.focus_port()
+    if port is None:
+        abort(404)
+
+    boundary = b"--frame"
+
+    def gen():
+        try:
+            for frame in cameras.iter_frames():
+                chunk = (
+                    boundary + b"\r\n"
+                    + b"Content-Type: image/jpeg\r\n"
+                    + b"Content-Length: " + str(len(frame)).encode() + b"\r\n\r\n"
+                    + frame + b"\r\n"
+                )
+                yield chunk
+        except GeneratorExit:
+            # browser disconnected — release the camera so others can use it
+            log.info("focus stream consumer disconnected, stopping focus")
+            cameras.stop_focus()
+            raise
+
+    return Response(
+        gen(),
+        mimetype="multipart/x-mixed-replace; boundary=frame",
+    )
+
+
+@app.post("/focus/stop")
+def focus_stop():
+    cameras.stop_focus()
+    return jsonify(focus_port=cameras.focus_port())
+
+
 def main():
     logging.basicConfig(level=logging.INFO,
                         format="%(asctime)s %(name)s %(levelname)s %(message)s")
-    app.run(host=LISTEN_HOST, port=LISTEN_PORT)
+    app.run(host=LISTEN_HOST, port=LISTEN_PORT, threaded=True)
 
 
 if __name__ == "__main__":
