@@ -95,12 +95,15 @@ class Cameras:
     def capture_bursts(
         self,
         n: int,
-        path_for: Callable[[Channel], Path],
+        path_fn_factory: Callable[[], Callable[[Channel], Path]],
         controls_for: Optional[ControlsFn] = None,
         resolution: Optional[tuple[int, int]] = None,
     ) -> list[CaptureResult]:
-        """Run N consecutive 3-channel bursts. Raises BusyError if another
-        capture is already running on this Cameras instance."""
+        """Run N consecutive 3-channel bursts. path_fn_factory is called once
+        per burst to produce a fresh (channel)->Path closure — that's how each
+        burst gets a unique timestamp prefix instead of overwriting the last.
+        Raises BusyError if another capture is already running.
+        """
         if n < 1:
             raise ValueError("n must be >= 1")
         if not self._lock.acquire(blocking=False):
@@ -108,14 +111,11 @@ class Cameras:
         try:
             all_results: list[CaptureResult] = []
             for _ in range(n):
+                path_for = path_fn_factory()
                 all_results.extend(self._single_burst(path_for, controls_for, resolution))
             return all_results
         finally:
             self._lock.release()
-
-    # Phase 3 compatibility shim. Equivalent to capture_bursts(1, ...).
-    def capture_burst(self, *args, **kwargs) -> list[CaptureResult]:
-        return self.capture_bursts(1, *args, **kwargs)
 
     def close(self) -> None:
         with self._lock:
