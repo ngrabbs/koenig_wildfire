@@ -10,15 +10,50 @@
            margin: 1.5em; max-width: 1200px; color: #222; }
     h1   { margin: 0 0 0.2em 0; }
     .subtitle { color: #666; margin: 0 0 1.2em 0; font-size: 0.95em; }
+
+    .flashes { margin: 0 0 1em 0; padding: 0; list-style: none; }
+    .flashes li { padding: 0.55em 0.8em; border-radius: 6px; margin-bottom: 0.4em; }
+    .flashes li.ok    { background: #ddf3df; border: 1px solid #2c8a3a; color: #144a1d; }
+    .flashes li.error { background: #fdecea; border: 1px solid #c0392b; color: #5c1a14; }
+
+    .warning-banner {
+      background: #c0392b; color: #fff; padding: 0.6em 0.9em; border-radius: 6px;
+      margin-bottom: 1em; font-weight: 600;
+    }
+
+    details.settings { border: 1px solid #ddd; border-radius: 8px; padding: 0.5em 1em;
+                       background: #fafafa; margin-bottom: 1.2em; }
+    details.settings summary { cursor: pointer; font-weight: 600; padding: 0.4em 0; }
+    details.settings[open] summary { border-bottom: 1px solid #eee; margin-bottom: 0.6em; }
+    .settings-section { margin-top: 0.8em; }
+    .settings-section h3 { margin: 0.2em 0 0.6em; font-size: 1em; color: #444; }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 0.5em 0.8em;
+    }
+    .field { display: flex; flex-direction: column; font-size: 0.88em; }
+    .field label { color: #555; margin-bottom: 0.15em; }
+    .field input[type="number"],
+    .field input[type="text"],
+    .field select { padding: 0.35em 0.45em; font-size: 0.95em;
+                    border: 1px solid #ccc; border-radius: 4px; }
+    .checkbox-row { display: flex; align-items: center; gap: 0.4em; padding: 0.4em 0; }
+    .per-cam { border-top: 1px dashed #ddd; padding-top: 0.6em; margin-top: 0.6em; }
+    .save-row { margin-top: 0.8em; }
+
     .controls { display: flex; gap: 0.5em; margin-bottom: 1.2em; flex-wrap: wrap; }
     .controls form { margin: 0; }
     button { font-size: 1em; padding: 0.6em 1.1em; cursor: pointer;
              border-radius: 6px; border: 1px solid transparent; }
     button.capture { background: #1f6feb; color: white; border-color: #1f6feb; }
     button.capture:hover { background: #1a5fcc; }
+    button.save    { background: #2c8a3a; color: white; border-color: #2c8a3a; }
+    button.save:hover { background: #266e30; }
     button.danger  { background: white; color: #c0392b; border-color: #c0392b; }
     button.danger:hover { background: #fdecea; }
     button.delete  { padding: 0.3em 0.7em; font-size: 0.85em; }
+
     .gallery { display: grid;
                grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
                gap: 1em; }
@@ -35,7 +70,114 @@
 </head>
 <body>
   <h1>Koenig Wildfire</h1>
-  <p class="subtitle">Phase 3 — three cameras through Arducam v2.2 mux. Click <strong>Capture</strong> to grab one frame from each channel (cam0 / 762 nm, cam1 / 766 nm, cam2 / 770 nm).</p>
+  <p class="subtitle">Phase 4 — three cameras through Arducam v2.2 mux. Settings below, click <strong>Capture</strong> to grab one frame from each channel (cam0 / 762 nm, cam1 / 766 nm, cam2 / 770 nm).</p>
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+    <ul class="flashes">
+      {% for category, msg in messages %}
+      <li class="{{ category }}">{{ msg }}</li>
+      {% endfor %}
+    </ul>
+    {% endif %}
+  {% endwith %}
+
+  {% if settings and settings.advanced_mode %}
+  <div class="warning-banner">
+    Per-camera settings are active &mdash; ratio measurement invalid. Captures are for diagnostics only.
+  </div>
+  {% endif %}
+
+  {% if settings %}
+  <details class="settings" {% if settings.advanced_mode %}open{% endif %}>
+    <summary>Camera settings</summary>
+    <form action="/settings" method="post">
+      <div class="settings-section">
+        <h3>Resolution</h3>
+        <div class="field">
+          <label for="resolution">Still capture resolution</label>
+          <select name="resolution" id="resolution">
+            {% for w, h in resolutions %}
+            <option value="{{ w }}x{{ h }}"
+              {% if settings.resolution[0] == w and settings.resolution[1] == h %}selected{% endif %}>
+              {{ w }} &times; {{ h }}
+            </option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+
+      <div class="settings-section">
+        <h3>Shared (applied to all three cameras)</h3>
+        <div class="grid">
+          {% for name in control_names %}
+            {% set spec = control_schema[name] %}
+            {% set v = settings.shared[name] %}
+            {% if name in bool_controls %}
+              <div class="field checkbox-row">
+                <input type="checkbox" id="shared_{{ name }}" name="shared_{{ name }}"
+                       {% if v %}checked{% endif %} />
+                <label for="shared_{{ name }}">{{ name }}</label>
+              </div>
+            {% else %}
+              <div class="field">
+                <label for="shared_{{ name }}">{{ name }}</label>
+                <input type="number" step="any" id="shared_{{ name }}"
+                       name="shared_{{ name }}" value="{{ v }}" />
+              </div>
+            {% endif %}
+          {% endfor %}
+        </div>
+      </div>
+
+      <div class="settings-section">
+        <div class="checkbox-row">
+          <input type="checkbox" id="advanced_mode" name="advanced_mode"
+                 {% if settings.advanced_mode %}checked{% endif %} />
+          <label for="advanced_mode"><strong>Advanced &mdash; per-camera overrides</strong>
+            (breaks ratio math, diagnostic use only)</label>
+        </div>
+        <div class="per-cam">
+          {% for port in camera_ports %}
+            {% set overrides = settings.per_camera[port|string] %}
+            <h3>Camera {{ port }} overrides
+              {% if port == 0 %} &mdash; 762 nm (off-line)
+              {% elif port == 1 %} &mdash; 766 nm (on-line)
+              {% else %} &mdash; 770 nm (on-line)
+              {% endif %}
+            </h3>
+            <div class="grid">
+              {% for name in control_names %}
+                {% set spec = control_schema[name] %}
+                {% set ov = overrides.get(name) %}
+                {% if name in bool_controls %}
+                  <div class="field checkbox-row">
+                    <input type="checkbox" id="cam{{ port }}_{{ name }}"
+                           name="cam{{ port }}_{{ name }}"
+                           {% if ov %}checked{% endif %} />
+                    <label for="cam{{ port }}_{{ name }}">{{ name }}</label>
+                  </div>
+                {% else %}
+                  <div class="field">
+                    <label for="cam{{ port }}_{{ name }}">{{ name }}</label>
+                    <input type="number" step="any" id="cam{{ port }}_{{ name }}"
+                           name="cam{{ port }}_{{ name }}"
+                           value="{{ ov if ov is not none else '' }}"
+                           placeholder="(shared)" />
+                  </div>
+                {% endif %}
+              {% endfor %}
+            </div>
+          {% endfor %}
+        </div>
+      </div>
+
+      <div class="save-row">
+        <button class="save" type="submit">Save settings</button>
+      </div>
+    </form>
+  </details>
+  {% endif %}
 
   <div class="controls">
     <form action="/capture" method="post">
