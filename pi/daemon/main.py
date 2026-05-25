@@ -1,8 +1,8 @@
 """Capture daemon — Flask HTTP service on 127.0.0.1:8001.
 
-Endpoints (Phase 2):
+Endpoints (Phase 3):
   GET    /healthz           liveness probe
-  POST   /capture           take one picture, return its id
+  POST   /capture           run one three-channel burst, return per-channel metadata
   GET    /images            list image ids (newest first)
   GET    /images/<id>       serve the JPEG bytes
   DELETE /images/<id>       delete one
@@ -14,7 +14,7 @@ from flask import Flask, jsonify, send_file, abort
 from pathlib import Path
 import os
 
-from .camera import Camera
+from .camera import Cameras
 from .store import ImageStore
 
 STORE_ROOT = os.environ.get("KOENIG_STORE", str(Path.home() / "koenig_images"))
@@ -23,7 +23,7 @@ LISTEN_PORT = int(os.environ.get("KOENIG_DAEMON_PORT", "8001"))
 
 app = Flask(__name__)
 store = ImageStore(STORE_ROOT)
-camera = Camera()
+cameras = Cameras()
 
 
 @app.get("/healthz")
@@ -33,9 +33,16 @@ def healthz():
 
 @app.post("/capture")
 def capture():
-    path = store.next_path("jpg")
-    camera.capture(path)
-    return jsonify(id=path.name, bytes=path.stat().st_size)
+    results = cameras.capture_burst(store.burst_path_fn("jpg"))
+    return jsonify(captures=[
+        {
+            "port": r.port,
+            "wavelength_nm": r.wavelength_nm,
+            "id": r.path.name,
+            "bytes": r.path.stat().st_size,
+        }
+        for r in results
+    ])
 
 
 @app.get("/images")

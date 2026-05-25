@@ -1,10 +1,23 @@
-"""Image directory: list, fetch path, delete, clear. Path-traversal safe."""
+"""Image directory: list, fetch path, delete, clear. Path-traversal safe.
+
+Filenames are UTC-timestamp-prefixed so a three-channel burst sorts
+together in alphabetical order, e.g.
+
+    20260525_211238_123_cam0_762nm.jpg
+    20260525_211238_123_cam1_766nm.jpg
+    20260525_211238_123_cam2_770nm.jpg
+"""
 from __future__ import annotations
 from datetime import datetime, timezone
 from pathlib import Path
+from typing import Callable
 import re
 
 _ID_RE = re.compile(r"^[0-9A-Za-z_\-]+\.(jpg|jpeg|png)$")
+
+
+def _utc_stamp() -> str:
+    return datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S_%f")[:-3]
 
 
 class ImageStore:
@@ -12,9 +25,17 @@ class ImageStore:
         self.root = Path(root)
         self.root.mkdir(parents=True, exist_ok=True)
 
-    def next_path(self, ext: str = "jpg") -> Path:
-        ts = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S_%f")[:-3]
-        return self.root / f"{ts}.{ext}"
+    def burst_path_fn(self, ext: str = "jpg") -> Callable:
+        """Return a `(channel) -> Path` callable that gives each channel of a
+        single burst a shared timestamp prefix and a unique cam/wavelength
+        suffix."""
+        ts = _utc_stamp()
+
+        def make(channel) -> Path:
+            name = f"{ts}_cam{channel.port}_{channel.wavelength_nm}nm.{ext}"
+            return self.root / name
+
+        return make
 
     def list(self) -> list[str]:
         return sorted(
