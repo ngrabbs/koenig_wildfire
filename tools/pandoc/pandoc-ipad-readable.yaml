@@ -1,0 +1,16 @@
+pdf-engine: lualatex
+number-sections: false
+toc: true
+toc-depth: 2
+variables:
+  documentclass: article
+  fontsize: 10pt
+  mainfont: TeX Gyre Pagella
+  sansfont: TeX Gyre Heros
+  monofont: DejaVu Sans Mono
+  geometry:
+    - paperwidth=7.5in
+    - paperheight=10in
+    - margin=0.72in
+include-in-header:
+  - tools/pandoc/ipad-tech-header.tex

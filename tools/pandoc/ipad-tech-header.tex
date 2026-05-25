@@ -1,0 +1,39 @@
+\usepackage{amsmath,amssymb,amsfonts}
+\usepackage{graphicx}
+\usepackage{xcolor}
+\usepackage{hyperref}
+\hypersetup{
+	colorlinks=true,
+	linkcolor=black,
+	urlcolor=[rgb]{0.10,0.30,0.55},
+	citecolor=[rgb]{0.10,0.30,0.55}
+}
+
+\usepackage{microtype}
+\usepackage{setspace}
+\setstretch{1.23}
+
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{0.55em}
+\setlength{\emergencystretch}{2em}
+
+\usepackage{titlesec}
+\titleformat{\section}{\Large\bfseries}{\thesection}{0.65em}{}
+\titleformat{\subsection}{\large\bfseries}{\thesubsection}{0.6em}{}
+\titlespacing*{\section}{0pt}{1.2em}{0.4em}
+\titlespacing*{\subsection}{0pt}{0.9em}{0.3em}
+
+\usepackage{caption}
+\captionsetup{font=small,labelfont=bf}
+
+\usepackage{fvextra}
+\DefineVerbatimEnvironment{Highlighting}{Verbatim}{
+breaklines,
+breakanywhere,
+fontsize=\footnotesize,
+commandchars=\\\{\}
+}
+
+\clubpenalty=10000
+\widowpenalty=10000
+\displaywidowpenalty=10000

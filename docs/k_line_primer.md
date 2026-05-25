@@ -122,9 +122,9 @@ of the obvious false positives (anything broadband-bright).
 
 ## 6. A small atmospheric bonus from picking 762 nm
 
-The 762 nm reference happens to land on the edge of the **O₂ A-band**,
+The 762 nm reference happens to land on the edge of the **O~2~ A-band**,
 an atmospheric oxygen absorption feature centered around 761 nm. This
-means at 762 nm, reflected sunlight gets attenuated by O₂ in the column
+means at 762 nm, reflected sunlight gets attenuated by O~2~ in the column
 of air between the ground and the satellite.
 
 This doesn't help Stage 1 detection directly (we're computing a ratio,
@@ -136,7 +136,7 @@ provide a useful side-channel:
 - This makes the 762 channel a *cleaner* reference than picking
   something like 750 nm or 800 nm would have been.
 - It also gives us a free atmospheric-correction signal if we ever want
-  to estimate path-integrated O₂ column density.
+  to estimate path-integrated O~2~ column density.
 
 In short: the 762 nm choice is good, but for subtler reasons than just
 "it's between the K lines." Future filter selection should keep this
