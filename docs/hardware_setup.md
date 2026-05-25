@@ -17,24 +17,24 @@ end you should have a Pi that:
 If the payload is already built and you just want to use it, you want
 `operator_manual.md` instead.
 
-> **Status — Phase 2 (single-camera).** OS setup, software install,
-> and "single camera plugged into the Pi's CSI port" are documented
-> and tested. Wiring, mux dtoverlay, three-camera bring-up checks,
-> and field wifi land in Phases 3–5.
+> **Status — Phase 3 (three cameras through the mux).** OS setup,
+> software install, wiring, mux dtoverlay, and bring-up checks are
+> documented and tested end-to-end on Trixie + Pi 4 + IMX477 + v2.2
+> mux. Field wifi (AP-fallback) is still Phase 5.
 
 # Parts list
 
 | Part | Quantity | Notes |
 |---|---|---|
 | Raspberry Pi 4 (4 GB or 8 GB) | 1 | Pi 5 not supported yet — see architecture doc for reasoning |
-| Arducam Multi Camera Adapter v2.2 | 1 | Also sold as the B0120 4-port board |
-| InnoMaker IMX296RAW camera module | 3 | Global-shutter monochrome RAW |
-| Narrowband filter — 762 nm | 1 | Off-line reference |
+| Arducam Multi Camera Adapter v2.2 | 1 | Also sold as the B0120 4-port board. Mounts directly on the Pi's GPIO header. |
+| Raspberry Pi HQ Camera (IMX477) | 3 | Currently used. InnoMaker IMX296RAW is a global-shutter alternative — see architecture doc. |
+| Narrowband filter — 762 nm | 1 | Off-line reference. Bolts onto the lens housing — no wiring. |
 | Narrowband filter — 766 nm | 1 | On-line |
 | Narrowband filter — 770 nm | 1 | On-line |
 | 3D-printed filter holders | 3 | STLs in `../hardware/stl/` |
 | 15-pin CSI ribbon cable | 3 | One per camera, mux↔camera |
-| 15-pin CSI ribbon cable | 1 | Pi↔mux |
+| 15-pin CSI ribbon cable | 1 | **Pi↔mux** — easy to forget, the HAT does *not* route MIPI through the GPIO header |
 | USB SSD | 1 | Recommended for sustained timer mode |
 | Pi 4 power supply (5 V, 3 A USB-C) | 1 | — |
 | MicroSD card (32 GB +) | 1 | Boot disk |
@@ -73,55 +73,113 @@ as of Phase 2.
 
 # Wiring
 
-*TODO with photos. Going to do this with screenshots once the build is
-in front of us.*
+The Arducam v2.2 is a **HAT** — it mounts on the Pi's 40-pin GPIO
+header and gets I²C (SDA/SCL on pins 3/5), the three GPIO mux select
+lines (BCM 4 on pin 7, BCM 17 on pin 11, BCM 18 on pin 12), and 5 V
+power automatically through that connector. So a lot of what you'd
+expect to wire up is already wired.
 
-Outline of what we need to document:
+The one thing that is **NOT** automatic — and is easy to miss — is the
+**CSI ribbon cable from the HAT's CSI output socket back down to the
+Pi's CSI input socket**. The HAT has its own CSI output because the
+MIPI/CSI signal can't ride along the GPIO header. Without that
+ribbon, sensors will enumerate over I²C (so `rpicam-hello
+--list-cameras` shows all three) but every capture attempt will hang
+with `Device timeout detected`.
 
-- Pi CSI port → mux CSI in (15-pin ribbon, contacts toward the PCB).
-- Mux ports 0/1/2 → each IMX296 camera.
-- Mux power (5 V from Pi or separate supply).
-- Mux I²C lines (auto-shared with the Pi's I²C bus).
-- Mux GPIO select lines → physical pins on the Pi (note the pin
-  numbers chosen so the daemon can match them).
+> **Ribbon orientation matters at every CSI connector.** Pi side:
+> contacts face toward the HDMI ports. HAT side: contacts face the
+> HAT PCB (away from the heatsink/jack/etc.). Camera side: contacts
+> face the camera PCB. If a ribbon is upside down on any end, you
+> get the same "sensors enumerate but capture hangs" symptom as a
+> missing ribbon.
+
+Cameras plug into the HAT's three (or four — fourth is unused) input
+ports. Order matters only insofar as our daemon maps physical port to
+filter wavelength: cam0 → 762 nm, cam1 → 766 nm, cam2 → 770 nm.
 
 ![Figure 1: Wiring diagram (placeholder)](img/wiring_diagram.png){ width=80% }
 
 # dtoverlay configuration
 
-*TODO (Phase 3 — when we wire up the mux for real.)*
+Stock Pi OS Trixie ships `camera-mux-4port.dtbo`, designed for newer
+Arducam multi-camera HATs. The **v2.2 board wires the PCA9544 I²C
+switch to the GPIO-header i2c bus (i2c-1)**, while stock
+`camera-mux-4port` expects it on the dedicated camera/display i2c bus
+(i2c-10). Using the stock overlay gives you `pca954x 10-0070: probe
+failed` and zero cameras.
 
-`/boot/firmware/config.txt` will need:
+We ship a small patch script in the repo that produces
+`koenig-mux-4port.dtbo` from the stock overlay. Run it once after
+first boot, and re-run it after any Pi OS upgrade that might replace
+the stock overlay:
+
+```bash
+cd ~/code/koenig_wildfire
+sudo bash pi/dtoverlay/build-koenig-mux-4port.sh
+```
+
+Then `/boot/firmware/config.txt` needs:
 
 ```
-# camera_auto_detect must be off — we're driving the cameras manually.
+# turn off auto-detect — it gets confused by the mux
 camera_auto_detect=0
 
-# IMX296 dtoverlay (per camera, with cam0/cam1 selector once mux is in play)
-dtoverlay=imx296
+# our patched 4-port mux overlay, with all three ports as IMX477
+dtoverlay=koenig-mux-4port,cam0-imx477,cam1-imx477,cam2-imx477
 
-# I²C (already enabled via raspi-config, repeat here for clarity)
+# i2c on the GPIO header (where the mux actually lives)
 dtparam=i2c_arm=on
 ```
 
-The exact mux-aware dtoverlay incantation will be confirmed during
-Phase 3 bring-up.
+Reboot and verify with `rpicam-hello --list-cameras` — you should see
+three IMX477 entries with paths like
+`/base/soc/i2c@7e804000/pca@70/i2c@{0,1,2}/imx477@1a`.
+
+See [`pi/dtoverlay/README.md`](../pi/dtoverlay/README.md) for the
+deeper explanation of the patch and a TODO for IMX296 support.
 
 # Bring-up checks
 
-*TODO (Phases 2 and 3.)*
+After plugging everything in, booting, building the dtoverlay, and
+rebooting, run these in order:
 
-A short script that verifies, in order:
+1. **PCA9544 visible on i2c-1.**
+   ```bash
+   sudo i2cdetect -y 1
+   ```
+   Should show `70` in the 70-row. If it's missing, the HAT isn't
+   seated on the GPIO header properly.
 
-1. `i2cdetect -y 1` shows the mux at its expected address.
-2. `libcamera-hello --list-cameras` enumerates exactly one camera (the
-   active mux channel).
-3. Switching the mux (`tools/check_mux.py select 1`) changes which
-   camera the list-command shows.
-4. Capturing through each channel produces a non-zero-size file.
+2. **Three cameras enumerated.**
+   ```bash
+   rpicam-hello --list-cameras
+   ```
+   Should list three `imx477` entries at
+   `/base/soc/i2c@7e804000/pca@70/i2c@{0,1,2}/imx477@1a`.
+   If you get zero or fewer than three, check the camera-to-mux
+   ribbons and reseat them.
 
-This becomes the **acceptance test** for "the payload is assembled
-correctly."
+3. **Each camera actually captures.**
+   ```bash
+   for n in 0 1 2; do
+     rpicam-still -n --camera $n -o /tmp/cam$n.jpg --timeout 1500
+   done
+   ls -lh /tmp/cam*.jpg
+   ```
+   All three files should be ≥ 500 KB. If `rpicam-still` hangs and
+   eventually fails with `Device timeout detected`, the Pi↔HAT CSI
+   ribbon is the prime suspect — either missing, loose, or upside
+   down on one end.
+
+4. **Daemon runs the burst over HTTP.**
+   ```bash
+   curl -sX POST http://127.0.0.1:8001/capture
+   ```
+   Should return a JSON body listing three captures with `port`,
+   `wavelength_nm`, `id`, and `bytes` per channel. Takes ~8 seconds.
+
+If all four pass, the payload is assembled correctly.
 
 # Installing the software
 

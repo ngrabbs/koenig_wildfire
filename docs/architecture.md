@@ -87,24 +87,30 @@ layer that talks to the daemon over local HTTP.
 
 The cost is two services to ship instead of one. Worth it.
 
-## IMX296 over IMX477 (HQ Camera)
+## Sensor pick: IMX477 today, IMX296 as a future option
 
-We had both on the bench. IMX296RAW wins for this payload:
+We had both on the bench. IMX296RAW is the *better* sensor for this
+payload — global shutter (motion-immune for the drone), monochrome
+RAW (no Bayer-debayer loss in the NIR window), smaller frames (7× less
+storage, faster mux-switch settle time). The primer calls out IMX296
+by name.
 
-- **Global shutter.** The mux forces sequential capture across the
-  three filters (see next section). Rolling shutter on a moving drone
-  would smear each channel differently and break the ratio math.
-  Global shutter freezes each frame instantly.
-- **Monochrome RAW.** No Bayer matrix means no debayering loss in the
-  narrowband NIR window we actually care about. The K-line primer
-  explicitly calls this out.
-- **Smaller frames.** 1456×1088 vs 4056×3040 cuts file size ~7× and
-  shrinks the inter-channel time gap the mux introduces. Storage and
-  drone-bandwidth both benefit.
+**But in Phase 3 we shipped IMX477** for one practical reason: the
+stock Pi OS `camera-mux-4port` overlay supports IMX477 (and many
+other sensors), but ships no `imx296.dtsi` and therefore no IMX296
+support through the multiplexer. Adding it requires writing a
+sensor `.dtsi` from scratch — a few hundred lines of dts and
+non-trivial validation. IMX477 worked out of the box (modulo our
+i2c-routing patch — see overlay section below) so we took the win.
 
-The HQ Camera (IMX477) is the documented fallback if the IMX296 + mux
-combo turns out to be problematic — same daemon code, different
-dtoverlay.
+Switching is a swap of cameras plus one line in
+`/boot/firmware/config.txt`
+(`cam0-imx477` → `cam0-imx296`, etc.) once the `imx296.dtsi` exists.
+Both sensors stay supported by our Python daemon — `Picamera2` is
+agnostic, the mux switching is in the kernel.
+
+The IMX296 work is a follow-up in
+[`pi/dtoverlay/README.md`](../pi/dtoverlay/README.md).
 
 ## Arducam Multi Camera Adapter v2.2 (and the simultaneity tradeoff)
 
@@ -193,8 +199,8 @@ the UI surfaces a "view logs" tail for diagnostics.
 |---|---|---|
 | 0 | Savepoint + reorganise | **done** — Tag `v0.2-his-final-snapshot`, legacy/ archive, new skeleton, single commit. |
 | 1 | Docs scaffold | **done** — This document, operator manual stub, hardware setup stub, `make pdf` toolchain, end-to-end PDF build verified. |
-| 2 | Single-camera capture spike | One IMX296 directly on the Pi, no mux. Capture button + image gallery + delete. Re-creates the old `image_dashboard/` functionality on the new stack. |
-| 3 | Add the mux | dtoverlay, I²C switch logic, sequential three-channel burst. Two cameras first, then three. |
+| 2 | **done** — Single-camera capture spike | One IMX296 directly on the Pi, no mux. Capture button + image gallery + delete. Re-creates the old `image_dashboard/` functionality on the new stack. |
+| 3 | **done** — Add the mux | Custom `koenig-mux-4port` dtoverlay (stock overlay patched for i2c-1 routing). Sequential three-channel burst via Picamera2 + kernel video-mux. Three IMX477s through Arducam v2.2 HAT. |
 | 4 | Settings UI | `settings.json` schema, shared-default form, Advanced/per-camera override with warning banner, burst-count parameter, timer mode (APScheduler). |
 | 5 | Focus mode and field networking | Per-camera MJPEG live stream with full-screen view. AP-fallback wifi wired through systemd. |
 | 6 | Operator-manual finalisation | Fresh student walks the doc, screenshots collected, troubleshooting filled in from observed failures, v1.0 PDF tagged. |

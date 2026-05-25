@@ -11,7 +11,7 @@ This is the user-facing guide for operating the Koenig Wildfire camera
 payload from a laptop. It assumes:
 
 - You have the assembled payload (Raspberry Pi 4 + Arducam multiplexer
-  + three IMX296 cameras with narrowband filters) powered and booted.
+  + three cameras with narrowband filters) powered and booted.
 - You have a laptop with a modern web browser.
 - You have **no prior Linux or networking experience** — anything we need
   you to know is explained here.
@@ -21,17 +21,20 @@ manual is wrong — please tell whoever handed you the gear, and check
 that you're on the latest version (the version line at the top of this
 PDF tells you when it was built).
 
-> **Status — Phase 2 (single-camera spike).**
-> Sections covering single capture, gallery, and delete are live and
-> describe the actual interface. Burst, timer, multi-camera, settings,
-> and focus mode are still placeholders — those features land in
-> Phases 3–5.
+> **Status — Phase 3 (three cameras through the mux).**
+> Each Capture click now grabs one frame from each of the three
+> channels (cam0 / 762 nm, cam1 / 766 nm, cam2 / 770 nm) and saves
+> them with a shared timestamp so they sort together in the gallery.
+> Burst-of-N, timer-mode auto-capture, settings UI, and focus mode
+> are still placeholders — Phases 4 and 5.
 
 # Quick start
 
-> **Phase 2 caveat.** The payload currently has **one** camera connected,
-> not three, and **no filters**. You can still take pictures and confirm
-> the interface works end-to-end. Three-camera operation lands in Phase 3.
+> **Phase 3 caveat.** All three cameras work, but the filters aren't
+> bolted on yet (those mount onto the lens housings, no electronics).
+> Pictures all show the same scene with no spectral difference until
+> filters are installed. The capture pipeline doesn't care — when you
+> bolt the filters on, the science begins automatically.
 
 1. **Power on the Pi.** Plug in the USB-C power cable. Wait about 30
    seconds for it to boot.
@@ -41,8 +44,11 @@ PDF tells you when it was built).
 3. **Open your browser** to `http://koenig-pi.local:8000`.
    - If that doesn't resolve, use the Pi's IP address directly:
      `http://<pi-ip>:8000`.
-4. **Click Capture.** A picture appears in the gallery below. Click the
-   thumbnail to open it full-size in a new tab.
+4. **Click Capture.** Three pictures appear in the gallery, one per
+   camera (you can tell them apart by the `cam0_762nm`, `cam1_766nm`,
+   `cam2_770nm` suffix in each filename). Each click takes ~8 seconds
+   because the three cameras share one MIPI lane through the mux and
+   must capture in sequence.
 
 ![Figure 1: The main page on first load (placeholder)](img/quickstart_homepage.png){ width=80% }
 
@@ -81,11 +87,19 @@ The filename of each picture is its UTC timestamp:
 
 ### Single capture
 
-Click the blue **Capture** button. After about a second the gallery
-refreshes with the new picture on top. That's it.
+Click the blue **Capture** button. After about **8 seconds** the
+gallery refreshes with three new pictures on top — one per channel,
+labeled in the filename as `cam0_762nm`, `cam1_766nm`, and
+`cam2_770nm`. The three filenames share the same timestamp prefix so
+they always group together when the gallery is sorted by name.
 
-If the page seems to hang after you click, the camera is still warming
-up — give it ten seconds, then reload the page.
+Why it takes 8 seconds: the three cameras share one CSI data lane
+through the multiplexer. The Pi has to capture from camera 0, switch
+the mux, capture from camera 1, switch again, and so on. There's no
+way around the sequential timing without different hardware.
+
+If the page seems to hang past 15 seconds, something's wrong — see
+the troubleshooting section.
 
 ### Burst capture
 
@@ -165,7 +179,21 @@ What's listed here is the menu of likely problems.*
 
 ## "Only one (or two) cameras show up"
 
-*(placeholder)*
+If you click Capture and only get one or two pictures back instead of
+three:
+
+- **Most likely: a CSI ribbon is loose** between the multiplexer board
+  and one of the cameras. Power off, reseat both ends of each ribbon,
+  and try again. CSI ribbons are fragile and connectors don't always
+  latch with an obvious click.
+- **Second most likely: a ribbon is plugged in upside down.** Contacts
+  on the camera end should face the camera PCB; contacts on the mux
+  end should face the mux PCB. If you can see metal on the wrong side,
+  flip it.
+- **If reseating doesn't help:** SSH into the Pi and run
+  `rpicam-hello --list-cameras`. You should see all three IMX477
+  entries. If one is missing, it's a hardware problem — that camera
+  isn't being reached at all.
 
 ## "The pictures are all black / all white"
 
@@ -186,8 +214,9 @@ You set the size (e.g. "burst of 10"); the system captures that many
 through each filter before stopping.
 
 **Capture.** One full set of three pictures, one per filter (762 / 766
-/ 770 nm). All three are saved with the same timestamp so the science
-team can match them up.
+/ 770 nm). All three share the same timestamp in their filenames so the
+science team can match them up. Filename pattern is
+`YYYYMMDD_HHMMSS_mmm_cam{N}_{wavelength}nm.jpg`.
 
 **Filter.** A piece of glass in front of each camera that only lets
 through light of one specific colour (wavelength). Our three filters
