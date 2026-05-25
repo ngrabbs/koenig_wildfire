@@ -191,13 +191,22 @@ class Cameras:
 
     def stop_focus(self) -> None:
         """End any active focus session, restore the camera, release the lock.
-        Safe to call when no focus is active."""
+        Safe to call when no focus is active and safe to call multiple times."""
         if self._focus_port is None:
             return
         port = self._focus_port
         p = self._picams[port]
         try:
             p.stop_recording()
+        except RuntimeError as e:
+            # picamera2 stops the encoder internally when the consumer
+            # disconnects; our explicit stop then sees "Encoder already
+            # stopped". Make sure the camera itself stopped though.
+            log.debug("stop_recording on port %d: %s", port, e)
+            try:
+                p.stop()
+            except Exception:
+                pass
         except Exception:
             log.exception("stop_recording on port %d failed", port)
         # configured_size already set to None — next capture reconfigures still
