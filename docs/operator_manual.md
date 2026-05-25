@@ -21,27 +21,30 @@ manual is wrong — please tell whoever handed you the gear, and check
 that you're on the latest version (the version line at the top of this
 PDF tells you when it was built).
 
-> **Status — Phase 1 (docs scaffold).**
-> The web interface this manual describes does not exist yet. Sections
-> below are placeholders that will fill in as features are built in
-> Phases 2–6. The structure won't change much; the screenshots and
-> step-by-step procedures will land later.
+> **Status — Phase 2 (single-camera spike).**
+> Sections covering single capture, gallery, and delete are live and
+> describe the actual interface. Burst, timer, multi-camera, settings,
+> and focus mode are still placeholders — those features land in
+> Phases 3–5.
 
 # Quick start
 
-*To be filled in after Phase 2.*
+> **Phase 2 caveat.** The payload currently has **one** camera connected,
+> not three, and **no filters**. You can still take pictures and confirm
+> the interface works end-to-end. Three-camera operation lands in Phase 3.
 
-The three-line version will eventually be:
+1. **Power on the Pi.** Plug in the USB-C power cable. Wait about 30
+   seconds for it to boot.
+2. **Connect your laptop to the same wifi as the Pi.** In the lab that
+   means whatever wifi the Pi is configured for. (Field AP-mode lands
+   in Phase 5.)
+3. **Open your browser** to `http://koenig-pi.local:8000`.
+   - If that doesn't resolve, use the Pi's IP address directly:
+     `http://<pi-ip>:8000`.
+4. **Click Capture.** A picture appears in the gallery below. Click the
+   thumbnail to open it full-size in a new tab.
 
-1. **Power on** the payload (toggle the power switch on the bottom plate).
-2. **Connect your laptop to wifi** named `satnet` (password: `cubesat1`),
-   or — if you're in the lab — plug an Ethernet cable into the Pi.
-3. **Open your browser** to `http://koenig-pi.local:8000` and click
-   **Capture**.
-
-![Figure 1: Payload power switch and wifi sticker (placeholder)](img/quickstart_payload.png){ width=80% }
-
-![Figure 2: The main page on first load (placeholder)](img/quickstart_homepage.png){ width=80% }
+![Figure 1: The main page on first load (placeholder)](img/quickstart_homepage.png){ width=80% }
 
 # What this thing does (one paragraph)
 
@@ -63,17 +66,26 @@ curious.
 
 ## The main page
 
-![Figure 3: Annotated main page (placeholder)](img/main_page_annotated.png){ width=85% }
+![Figure 2: Annotated main page (placeholder)](img/main_page_annotated.png){ width=85% }
 
 | # | Element | What it does |
 |---|---|---|
-| 1 | *(placeholder)* | *(placeholder)* |
+| 1 | **Capture** button | Takes one picture, adds it to the gallery below. |
+| 2 | **Clear all** button | Deletes every image in the gallery (asks first). |
+| 3 | Image card | A thumbnail of one captured picture, with its filename and a per-image **Delete** button. Click the thumbnail to open the full-size image in a new tab. |
+
+The filename of each picture is its UTC timestamp:
+`YYYYMMDD_HHMMSS_mmm.jpg`. Sort order in the gallery is newest first.
 
 ## Capturing pictures
 
-*To be filled in after Phase 2.*
-
 ### Single capture
+
+Click the blue **Capture** button. After about a second the gallery
+refreshes with the new picture on top. That's it.
+
+If the page seems to hang after you click, the camera is still warming
+up — give it ten seconds, then reload the page.
 
 ### Burst capture
 
@@ -85,11 +97,27 @@ curious.
 
 ## Reviewing pictures
 
-*To be filled in after Phase 2.*
+Every capture lands in the gallery on the same page. Click any
+thumbnail to open the full-size image in a new browser tab — from
+there you can right-click and **Save As** to copy the file to your
+laptop, or share the URL with someone else on the same network.
+
+The gallery refreshes whenever you load or reload the page; it does
+**not** auto-update while you're staring at it. Reload to see new
+captures.
 
 ## Deleting pictures
 
-*To be filled in after Phase 2.*
+There are two ways to delete:
+
+- **One picture at a time:** click the **Delete** button on its card.
+  Confirm in the popup. The page reloads with that picture gone.
+- **All pictures:** click the **Clear all** button at the top. The
+  count in parentheses tells you how many will be deleted. Confirm
+  in the popup.
+
+Deletion is immediate and **cannot be undone** — there is no recycle
+bin. If you might need a picture later, save it to your laptop first.
 
 ## Changing camera settings
 

@@ -9,6 +9,10 @@ Thumbs.db
 # === Docs build output ===
 docs/build/
 
+# === OS images ===
+*.img
+*.img.xz
+
 # === Python ===
 __pycache__/
 *.py[cod]

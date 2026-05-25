@@ -17,10 +17,10 @@ end you should have a Pi that:
 If the payload is already built and you just want to use it, you want
 `operator_manual.md` instead.
 
-> **Status — Phase 1 (stub).** The sections below outline what we need
-> to document. They fill in as Phases 2–5 actually wire up the
-> corresponding pieces. Until then, sections marked *TODO* are
-> intentionally empty.
+> **Status — Phase 2 (single-camera).** OS setup, software install,
+> and "single camera plugged into the Pi's CSI port" are documented
+> and tested. Wiring, mux dtoverlay, three-camera bring-up checks,
+> and field wifi land in Phases 3–5.
 
 # Parts list
 
@@ -41,18 +41,35 @@ If the payload is already built and you just want to use it, you want
 
 # Pi OS setup
 
-*TODO (filled in during Phase 2 bring-up.)*
+Tested on **Raspberry Pi OS Trixie (Debian 13), 64-bit, Pi 4 (4 GB)**
+as of Phase 2.
 
-Outline:
-
-1. Flash Raspberry Pi OS Bookworm (64-bit) to the SD card with
-   Raspberry Pi Imager. Set hostname `koenig-pi`, enable SSH, configure
-   your wifi.
-2. Boot once with monitor + keyboard attached. Run `sudo raspi-config`
-   and enable I²C and the camera interface. Reboot.
-3. `sudo apt update && sudo apt full-upgrade`
-4. Install dependencies (full list lands in Phase 2):
-   `sudo apt install python3-picamera2 python3-flask i2c-tools …`
+1. **Flash the SD card** with Raspberry Pi Imager. In the imager's
+   advanced settings:
+   - Hostname: `koenig-pi`
+   - Enable SSH (use public-key auth — paste the key from whoever's
+     going to develop against the Pi)
+   - Configure your wifi network and country
+   - Set user `pi` and a password
+2. **First boot.** Plug in monitor + keyboard, or SSH in from your
+   laptop:
+   ```bash
+   ssh pi@koenig-pi.local
+   ```
+3. **System packages.** SSH'd in, run:
+   ```bash
+   sudo apt update && sudo apt full-upgrade -y
+   sudo apt install -y git python3-picamera2 python3-flask i2c-tools
+   ```
+   That gets you everything Phase 2 needs.
+4. **Enable I²C** (needed for Phase 3 mux — fine to do now):
+   ```bash
+   sudo raspi-config nonint do_i2c 0
+   sudo reboot
+   ```
+5. **Camera auto-detect** is on by default in fresh Pi OS images. Verify
+   with `grep camera_auto_detect /boot/firmware/config.txt` — should
+   show `camera_auto_detect=1` uncommented.
 
 # Wiring
 
@@ -108,19 +125,33 @@ correctly."
 
 # Installing the software
 
-*TODO (Phase 5.)*
-
-Outline:
-
 ```bash
-git clone git@github.com:ngrabbs/koenig_wildfire.git
+mkdir -p ~/code && cd ~/code
+git clone https://github.com/ngrabbs/koenig_wildfire.git
 cd koenig_wildfire
-sudo ./pi/systemd/install.sh   # copies units, enables on boot, starts them
+sudo bash pi/systemd/install.sh
 ```
 
-After install, browse to `http://koenig-pi.local:8000` (or
-`http://192.168.4.1:8000` in AP-fallback mode) and you should see the
-UI.
+The install script copies the systemd unit files into place, enables
+them on boot, starts both services, and prints the URLs to browse to.
+
+Verify everything came up:
+
+```bash
+systemctl status koenig-daemon koenig-webui
+journalctl -u koenig-daemon -u koenig-webui -n 50 --no-pager
+```
+
+Then open `http://koenig-pi.local:8000` from a laptop on the same
+network. (Phase 5 adds AP-fallback wifi at `http://192.168.4.1:8000`.)
+
+## Updating the software later
+
+```bash
+cd ~/code/koenig_wildfire
+git pull
+sudo systemctl restart koenig-daemon koenig-webui
+```
 
 # Wifi configuration
 
