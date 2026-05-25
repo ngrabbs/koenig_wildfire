@@ -17,10 +17,10 @@ end you should have a Pi that:
 If the payload is already built and you just want to use it, you want
 `operator_manual.md` instead.
 
-> **Status — Phase 3 (three cameras through the mux).** OS setup,
-> software install, wiring, mux dtoverlay, and bring-up checks are
-> documented and tested end-to-end on Trixie + Pi 4 + IMX477 + v2.2
-> mux. Field wifi (AP-fallback) is still Phase 5.
+> **Status — Phase 5b (field-ready).** OS setup, wiring, mux
+> dtoverlay, bring-up checks, software install, and AP-fallback wifi
+> are documented and tested end-to-end on Trixie + Pi 4 + IMX477 +
+> v2.2 mux.
 
 # Parts list
 
@@ -211,12 +211,50 @@ git pull
 sudo systemctl restart koenig-daemon koenig-webui
 ```
 
-# Wifi configuration
+# Wifi configuration (AP fallback)
 
-*TODO (Phase 5.)*
+The Pi joins your known wifi networks first. If none are reachable
+(field site with no infrastructure), it falls back to broadcasting
+its own WPA2 access point named **`satnet`** (password **`cubesat1`**)
+at **`192.168.4.1`**. The operator's laptop joins that and reaches
+the UI at `http://192.168.4.1:8000`.
 
-The Pi tries known wifi first (configured via Raspberry Pi Imager or
-`sudo nmcli con add ...`). If no known network appears within a
-timeout, it brings up an AP named `satnet` on `192.168.4.1`
-(password `cubesat1`). The legacy setup script in
-`../legacy/software/satnet/hostap.sh` is the basis for this.
+## Install
+
+```bash
+sudo bash pi/network/install-ap-fallback.sh
+```
+
+The script is idempotent — re-run it any time, including after Pi OS
+upgrades. It creates a NetworkManager wifi profile in AP mode with
+`autoconnect-priority = -999` and bumps every existing client-wifi
+profile to priority `10`, so satnet only activates when no higher
+profile can be brought up.
+
+Override the defaults via env:
+
+```bash
+sudo SSID=koenig-field PASSWORD=longerthan8chars AP_IP=10.42.0.1 \
+     bash pi/network/install-ap-fallback.sh
+```
+
+## Add a "known" wifi network
+
+The first time you receive a Pi, give it the wifi network(s) it should
+prefer. SSH in and:
+
+```bash
+sudo nmcli device wifi connect "<SSID>" password "<PASSWORD>"
+```
+
+This creates a profile that NetworkManager auto-connects on every
+boot. To preserve the AP-fallback behaviour, the script bumps such
+profiles to priority 10 automatically the next time it runs — or you
+can do it by hand:
+
+```bash
+sudo nmcli con modify "<SSID>" connection.autoconnect-priority 10
+```
+
+See [`pi/network/README.md`](../pi/network/README.md) for the test
+procedure that doesn't lock you out of the Pi.

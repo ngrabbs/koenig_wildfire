@@ -202,7 +202,7 @@ the UI surfaces a "view logs" tail for diagnostics.
 | 2 | **done** — Single-camera capture spike | One IMX296 directly on the Pi, no mux. Capture button + image gallery + delete. Re-creates the old `image_dashboard/` functionality on the new stack. |
 | 3 | **done** — Add the mux | Custom `koenig-mux-4port` dtoverlay (stock overlay patched for i2c-1 routing). Sequential three-channel burst via Picamera2 + kernel video-mux. Three IMX477s through Arducam v2.2 HAT. |
 | 4 | Settings + burst + timer | **4a done** — `settings.json` schema, shared-default form, Advanced/per-camera override with warning banner. **4b done** — burst-count parameter, APScheduler timer mode, busy → 409. **4c remaining** — disk-usage display + "keep most recent N" auto-prune. |
-| 5 | Focus mode and field networking | Per-camera MJPEG live stream with full-screen view. AP-fallback wifi wired through systemd. |
+| 5 | Focus mode and field networking | **done** — Per-camera MJPEG live stream with full-screen view (Phase 5a) and AP-fallback wifi via a single NetworkManager profile (Phase 5b — `pi/network/install-ap-fallback.sh`). |
 | 6 | Operator-manual finalisation | Fresh student walks the doc, screenshots collected, troubleshooting filled in from observed failures, v1.0 PDF tagged. |
 
 Each phase ends with: working build + updated `operator_manual.md` +

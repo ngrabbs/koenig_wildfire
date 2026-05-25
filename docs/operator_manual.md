@@ -21,10 +21,10 @@ manual is wrong — please tell whoever handed you the gear, and check
 that you're on the latest version (the version line at the top of this
 PDF tells you when it was built).
 
-> **Status — Phase 4b (settings + burst + timer).**
-> Camera settings, burst count, and auto-capture timer are live.
-> Focus mode + AP-fallback wifi + storage display land in Phases 4c
-> and 5.
+> **Status — Phase 5b (field-ready).** Capture, gallery, delete,
+> settings, burst, timer, focus mode, and AP-fallback wifi are all
+> live. Storage display + auto-prune (Phase 4c) and screenshot polish
+> (Phase 6) are the only remaining items.
 
 # Quick start
 
@@ -36,17 +36,22 @@ PDF tells you when it was built).
 
 1. **Power on the Pi.** Plug in the USB-C power cable. Wait about 30
    seconds for it to boot.
-2. **Connect your laptop to the same wifi as the Pi.** In the lab that
-   means whatever wifi the Pi is configured for. (Field AP-mode lands
-   in Phase 5.)
-3. **Open your browser** to `http://koenig-pi.local:8000`.
-   - If that doesn't resolve, use the Pi's IP address directly:
-     `http://<pi-ip>:8000`.
+2. **Connect your laptop to wifi.** Two cases:
+   - **In the lab:** join the same wifi network the Pi knows. The Pi
+     joins it automatically on boot.
+   - **In the field (no known wifi):** wait about a minute after
+     boot, then join the wifi network called **`satnet`** (password
+     **`cubesat1`**) that the Pi broadcasts on its own. This network
+     is "the Pi"; you won't have internet on your laptop while
+     joined to it.
+3. **Open your browser**:
+   - In the lab: `http://koenig-pi.local:8000` (or the Pi's IP).
+   - In the field on satnet: `http://192.168.4.1:8000` (or
+     `http://koenig-pi.local:8000`).
 4. **Click Capture.** Three pictures appear in the gallery, one per
    camera (you can tell them apart by the `cam0_762nm`, `cam1_766nm`,
-   `cam2_770nm` suffix in each filename). Each click takes ~8 seconds
-   because the three cameras share one MIPI lane through the mux and
-   must capture in sequence.
+   `cam2_770nm` suffix in each filename). The first burst takes ~8
+   seconds while the cameras warm up; subsequent bursts are faster.
 
 ![Figure 1: The main page on first load (placeholder)](img/quickstart_homepage.png){ width=80% }
 
@@ -174,12 +179,31 @@ bin. If you might need a picture later, save it to your laptop first.
 
 ## Focus mode
 
-*To be filled in after Phase 5.*
+Focus mode shows live video from **one** camera so you can turn the
+lens by hand and watch the image sharpen.
 
-Focus mode lets you watch a single camera's live video while you turn
-the lens to focus it on your target. Because of how the multiplexer
-works, you can only watch one camera at a time — focus one, switch,
-focus the next.
+On the main page, next to **Capture**, there are three buttons:
+**Focus cam 0 (762 nm)**, **Focus cam 1 (766 nm)**, and
+**Focus cam 2 (770 nm)**. Click one. The browser switches to a
+black full-screen view of that camera's live feed at about 15
+frames per second.
+
+Procedure:
+
+1. Click the **Focus cam N** button for the camera you want to focus.
+2. Turn the lens on that physical camera. Watch the image on screen.
+3. Find the position where edges of your target look sharpest — they
+   tend to "snap" into focus over a small range of lens rotation.
+4. Click **Exit focus** (top-right) to return to the main page.
+5. Repeat for the other two cameras.
+
+Because the three cameras share one data lane through the multiplexer,
+you can only watch one at a time. Trying to capture or starting another
+focus mode while one is active will show a red "busy" banner.
+
+If you forget to click Exit and just close the browser tab, the Pi
+notices the disconnect within a few seconds and releases the camera
+automatically, so capturing still works on your next visit.
 
 # Operating the payload in the field
 
@@ -198,11 +222,29 @@ What's listed here is the menu of likely problems.*
 
 ## "I can't connect to the wifi"
 
-*(placeholder)*
+If you're trying to join `satnet` in the field and it isn't showing
+up in your wifi list:
+
+- Wait at least a minute after powering the Pi on. The Pi tries to
+  reach known wifi networks first and only falls back to broadcasting
+  satnet once those attempts fail.
+- If you accidentally configured the Pi with a wifi network that
+  *is* available where you are, the Pi will join that instead of
+  starting satnet. Move out of range, or temporarily forget that
+  network on the Pi (`sudo nmcli con delete <name>` over SSH from
+  the lab).
+- Verify the Pi is actually on by looking for its activity LED.
 
 ## "The web page won't load"
 
-*(placeholder)*
+- **In the lab:** make sure your laptop and the Pi are on the same
+  wifi network. Try the Pi's IP address (`http://<pi-ip>:8000`)
+  instead of `koenig-pi.local` — some networks block mDNS.
+- **In the field on satnet:** confirm your laptop is connected to the
+  `satnet` wifi (not your normal home/phone wifi). The URL is
+  `http://192.168.4.1:8000`.
+- If the page loads partially and then hangs, the Pi might be busy
+  capturing a long burst — wait 30 seconds and reload.
 
 ## "Only one (or two) cameras show up"
 
