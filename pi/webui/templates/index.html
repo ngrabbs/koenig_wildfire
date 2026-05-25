@@ -20,6 +20,11 @@
       background: #c0392b; color: #fff; padding: 0.6em 0.9em; border-radius: 6px;
       margin-bottom: 1em; font-weight: 600;
     }
+    .info-banner {
+      background: #fff5d6; color: #5a4400; border: 1px solid #f0c34a;
+      padding: 0.55em 0.9em; border-radius: 6px; margin-bottom: 1em;
+      font-size: 0.92em;
+    }
 
     details.settings { border: 1px solid #ddd; border-radius: 8px; padding: 0.5em 1em;
                        background: #fafafa; margin-bottom: 1.2em; }
@@ -88,6 +93,14 @@
   </div>
   {% endif %}
 
+  {% if settings and settings.timer.enabled %}
+  <div class="info-banner">
+    Auto-capture timer is <strong>on</strong> &mdash; capturing
+    {% if settings.burst_count > 1 %}{{ settings.burst_count }} burst(s) of 3{% else %}one 3-shot burst{% endif %}
+    every {{ interval_value }} {{ interval_unit }}.
+  </div>
+  {% endif %}
+
   {% if settings %}
   <details class="settings" {% if settings.advanced_mode %}open{% endif %}>
     <summary>Camera settings</summary>
@@ -104,6 +117,35 @@
             </option>
             {% endfor %}
           </select>
+        </div>
+      </div>
+
+      <div class="settings-section">
+        <h3>Capture behaviour</h3>
+        <div class="grid">
+          <div class="field">
+            <label for="burst_count">Burst count (shots per click, 1&ndash;{{ burst_count_max }})</label>
+            <input type="number" id="burst_count" name="burst_count"
+                   min="1" max="{{ burst_count_max }}"
+                   value="{{ settings.burst_count }}" />
+          </div>
+          <div class="field checkbox-row">
+            <input type="checkbox" id="timer_enabled" name="timer_enabled"
+                   {% if settings.timer.enabled %}checked{% endif %} />
+            <label for="timer_enabled">Auto-capture every</label>
+          </div>
+          <div class="field">
+            <label for="timer_value">Interval</label>
+            <input type="number" id="timer_value" name="timer_value"
+                   min="1" value="{{ interval_value }}" />
+          </div>
+          <div class="field">
+            <label for="timer_unit">Unit</label>
+            <select id="timer_unit" name="timer_unit">
+              <option value="seconds" {% if interval_unit == "seconds" %}selected{% endif %}>seconds</option>
+              <option value="minutes" {% if interval_unit == "minutes" %}selected{% endif %}>minutes</option>
+            </select>
+          </div>
         </div>
       </div>
 

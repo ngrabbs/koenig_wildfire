@@ -8,7 +8,7 @@ import os
 import urllib.error
 import urllib.request
 
-from ..shared.settings import CONTROL_SCHEMA, RESOLUTIONS
+from ..shared.settings import CONTROL_SCHEMA, RESOLUTIONS, BURST_COUNT_MAX
 
 DAEMON_URL = os.environ.get("KOENIG_DAEMON_URL", "http://127.0.0.1:8001")
 LISTEN_HOST = os.environ.get("KOENIG_WEBUI_HOST", "0.0.0.0")
@@ -18,7 +18,6 @@ app = Flask(__name__)
 # flash() needs a secret. UI is single-Pi local-network only, fixed value is fine.
 app.secret_key = os.environ.get("KOENIG_WEBUI_SECRET", "koenig-wildfire-ui")
 
-# Cameras for the per-camera advanced section.
 CAMERA_PORTS = [0, 1, 2]
 CONTROL_NAMES = list(CONTROL_SCHEMA.keys())
 BOOL_CONTROLS = {n for n, spec in CONTROL_SCHEMA.items() if spec["type"] is bool}
@@ -36,7 +35,7 @@ def _request(path: str, method: str = "GET", body_bytes: bytes | None = None,
         headers=headers,
     )
     try:
-        with urllib.request.urlopen(req, timeout=120) as r:
+        with urllib.request.urlopen(req, timeout=600) as r:
             return r.read(), r.headers.get("Content-Type", "application/json"), r.status
     except urllib.error.HTTPError as e:
         return e.read(), e.headers.get("Content-Type", "application/json"), e.code
@@ -70,6 +69,13 @@ def _form_to_controls(form, prefix=""):
     return out
 
 
+def _split_interval(seconds: int) -> tuple[int, str]:
+    """Pick a friendly (value, unit) display for an interval given in seconds."""
+    if seconds and seconds % 60 == 0:
+        return seconds // 60, "minutes"
+    return seconds, "seconds"
+
+
 @app.get("/")
 def index():
     images = daemon_json("/images")["images"]
@@ -77,6 +83,11 @@ def index():
         current_settings = daemon_json("/settings")
     except RuntimeError:
         current_settings = None
+    interval_value, interval_unit = (60, "seconds")
+    if current_settings:
+        interval_value, interval_unit = _split_interval(
+            current_settings.get("timer", {}).get("interval_seconds", 60)
+        )
     return render_template(
         "index.html",
         images=images,
@@ -86,12 +97,19 @@ def index():
         bool_controls=BOOL_CONTROLS,
         resolutions=RESOLUTIONS,
         camera_ports=CAMERA_PORTS,
+        burst_count_max=BURST_COUNT_MAX,
+        interval_value=interval_value,
+        interval_unit=interval_unit,
     )
 
 
 @app.post("/capture")
 def capture():
-    daemon_json("/capture", "POST")
+    raw, _, status = _request("/capture", "POST")
+    if status == 409:
+        flash("Capture is already in progress — try again in a moment.", "error")
+    elif status >= 400:
+        flash(f"Capture failed (HTTP {status}).", "error")
     return redirect(url_for("index"))
 
 
@@ -120,6 +138,20 @@ def update_settings():
     }
     if "resolution" in form:
         patch["resolution"] = form["resolution"]
+    if "burst_count" in form and form["burst_count"].strip():
+        patch["burst_count"] = form["burst_count"]
+    if "timer_value" in form and form["timer_value"].strip():
+        try:
+            value = int(form["timer_value"])
+            unit = form.get("timer_unit", "seconds")
+            seconds = value * (60 if unit == "minutes" else 1)
+            patch["timer"] = {
+                "enabled": "timer_enabled" in form,
+                "interval_seconds": seconds,
+            }
+        except ValueError:
+            flash("Timer interval must be a whole number.", "error")
+            return redirect(url_for("index"))
 
     try:
         daemon_json("/settings", "PUT", body=patch)

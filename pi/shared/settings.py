@@ -54,12 +54,19 @@ RESOLUTIONS: list[tuple[int, int]] = [
 DEFAULT_RESOLUTION = (4056, 3040)
 
 
+BURST_COUNT_MAX = 200            # arbitrary sanity cap
+TIMER_INTERVAL_MIN = 5           # seconds; below this and bursts will overlap
+TIMER_INTERVAL_MAX = 24 * 3600   # one day
+
+
 def _default_settings() -> dict:
     return {
         "shared": {name: spec["default"] for name, spec in CONTROL_SCHEMA.items()},
         "resolution": list(DEFAULT_RESOLUTION),
         "advanced_mode": False,
         "per_camera": {"0": {}, "1": {}, "2": {}},
+        "burst_count": 1,
+        "timer": {"enabled": False, "interval_seconds": 60},
     }
 
 
@@ -88,6 +95,31 @@ def _coerce_and_validate_controls(raw: dict[str, Any]) -> dict[str, Any]:
         if spec["validate"]:
             spec["validate"](coerced)
         out[name] = coerced
+    return out
+
+
+def _coerce_burst_count(value) -> int:
+    n = int(value)
+    if not (1 <= n <= BURST_COUNT_MAX):
+        raise ValueError(f"burst_count must be between 1 and {BURST_COUNT_MAX}")
+    return n
+
+
+def _coerce_timer(value: dict) -> dict:
+    out = {"enabled": False, "interval_seconds": 60}
+    if "enabled" in value:
+        v = value["enabled"]
+        if isinstance(v, str):
+            out["enabled"] = v.strip().lower() in ("1", "true", "yes", "on")
+        else:
+            out["enabled"] = bool(v)
+    if "interval_seconds" in value:
+        secs = int(value["interval_seconds"])
+        if not (TIMER_INTERVAL_MIN <= secs <= TIMER_INTERVAL_MAX):
+            raise ValueError(
+                f"timer.interval_seconds must be between {TIMER_INTERVAL_MIN} and {TIMER_INTERVAL_MAX}"
+            )
+        out["interval_seconds"] = secs
     return out
 
 
@@ -140,6 +172,16 @@ class SettingsStore:
                         merged["per_camera"][k] = _coerce_and_validate_controls(v)
                     except ValueError:
                         pass
+        if "burst_count" in stored:
+            try:
+                merged["burst_count"] = _coerce_burst_count(stored["burst_count"])
+            except ValueError:
+                pass
+        if "timer" in stored and isinstance(stored["timer"], dict):
+            try:
+                merged["timer"] = _coerce_timer(stored["timer"])
+            except ValueError:
+                pass
         return merged
 
     def snapshot(self) -> dict:
@@ -160,6 +202,10 @@ class SettingsStore:
                 for k, v in patch["per_camera"].items():
                     if k in new["per_camera"] and isinstance(v, dict):
                         new["per_camera"][k] = _coerce_and_validate_controls(v)
+            if "burst_count" in patch:
+                new["burst_count"] = _coerce_burst_count(patch["burst_count"])
+            if "timer" in patch and isinstance(patch["timer"], dict):
+                new["timer"] = _coerce_timer({**new["timer"], **patch["timer"]})
             self._data = new
             self._save()
             return copy.deepcopy(self._data)
@@ -181,3 +227,11 @@ class SettingsStore:
         with self._lock:
             w, h = self._data["resolution"]
             return int(w), int(h)
+
+    def burst_count(self) -> int:
+        with self._lock:
+            return int(self._data["burst_count"])
+
+    def timer(self) -> dict:
+        with self._lock:
+            return dict(self._data["timer"])

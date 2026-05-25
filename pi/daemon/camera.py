@@ -1,18 +1,24 @@
 """Three-camera capture through the Arducam v2.2 mux.
 
 Phase 3: each click captures one frame from each channel, sequentially.
-Phase 4: per-burst settings are applied via picamera2.set_controls(),
-and resolution changes trigger a reconfigure on the affected camera.
+Phase 4a: per-burst settings via picamera2.set_controls(); resolution
+  changes trigger reconfigure.
+Phase 4b: capture_bursts(n) runs N consecutive 3-channel bursts under a
+  single lock; non-blocking acquire raises BusyError so manual + timer
+  paths can't stack.
 
 The kernel's video-mux + pca954x drivers handle the physical port
-switching when we start a Picamera2 instance on a specific
-camera_num — we just create three instances at boot and start/stop
-one at a time.
+switching when we start a Picamera2 instance on a specific camera_num —
+we just create three instances at boot and start/stop one at a time.
 """
 from __future__ import annotations
 from pathlib import Path
 from typing import Callable, NamedTuple, Optional
 import threading
+
+
+class BusyError(RuntimeError):
+    """Raised when a capture is requested while one is already in progress."""
 
 
 class Channel(NamedTuple):
@@ -63,41 +69,53 @@ class Cameras:
         cfg = p.create_still_configuration(main={"size": size})
         p.configure(cfg)
 
-    def capture_burst(
+    def _single_burst(
         self,
+        path_for: Callable[[Channel], Path],
+        controls_for: Optional[ControlsFn],
+        resolution: Optional[tuple[int, int]],
+    ) -> list[CaptureResult]:
+        results: list[CaptureResult] = []
+        for ch in CHANNELS:
+            p = self._picams[ch.port]
+            if resolution is not None and self._configured_size[ch.port] != resolution:
+                self._configure(p, resolution)
+                self._configured_size[ch.port] = resolution
+            if controls_for is not None:
+                p.set_controls(controls_for(ch.port))
+            p.start()
+            try:
+                path = path_for(ch)
+                p.capture_file(str(path))
+            finally:
+                p.stop()
+            results.append(CaptureResult(ch.port, ch.wavelength_nm, path))
+        return results
+
+    def capture_bursts(
+        self,
+        n: int,
         path_for: Callable[[Channel], Path],
         controls_for: Optional[ControlsFn] = None,
         resolution: Optional[tuple[int, int]] = None,
     ) -> list[CaptureResult]:
-        """Capture once from each channel. Returns one CaptureResult per channel.
+        """Run N consecutive 3-channel bursts. Raises BusyError if another
+        capture is already running on this Cameras instance."""
+        if n < 1:
+            raise ValueError("n must be >= 1")
+        if not self._lock.acquire(blocking=False):
+            raise BusyError("capture already in progress")
+        try:
+            all_results: list[CaptureResult] = []
+            for _ in range(n):
+                all_results.extend(self._single_burst(path_for, controls_for, resolution))
+            return all_results
+        finally:
+            self._lock.release()
 
-        controls_for(port) -> dict of picamera2 controls applied before that
-        channel's capture. Pass None to leave controls at whatever was last set.
-
-        resolution forces a reconfigure of any camera whose current size doesn't
-        match (so the user can pick a smaller resolution to speed up bursts).
-        """
-        results: list[CaptureResult] = []
-        with self._lock:
-            for ch in CHANNELS:
-                p = self._picams[ch.port]
-
-                if resolution is not None and self._configured_size[ch.port] != resolution:
-                    # reconfigure requires not-running
-                    self._configure(p, resolution)
-                    self._configured_size[ch.port] = resolution
-
-                if controls_for is not None:
-                    p.set_controls(controls_for(ch.port))
-
-                p.start()
-                try:
-                    path = path_for(ch)
-                    p.capture_file(str(path))
-                finally:
-                    p.stop()
-                results.append(CaptureResult(ch.port, ch.wavelength_nm, path))
-        return results
+    # Phase 3 compatibility shim. Equivalent to capture_bursts(1, ...).
+    def capture_burst(self, *args, **kwargs) -> list[CaptureResult]:
+        return self.capture_bursts(1, *args, **kwargs)
 
     def close(self) -> None:
         with self._lock:
