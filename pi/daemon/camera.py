@@ -224,6 +224,17 @@ class Cameras:
             self._configured[port] = None  # force reconfigure back to still after focus
             if controls:
                 p.set_controls(controls)
+            # Prime the camera with a throwaway start/stop. Without this, the
+            # first start_recording after daemon boot occasionally fires up
+            # the encoder but the IMX477 pipeline never produces frames
+            # (= black focus stream). A regular Capture click fixed it
+            # because capture does its own start/stop. This cycles the
+            # pipeline once before the actual encoder run.
+            try:
+                p.start()
+                p.stop()
+            except Exception as e:
+                log.warning("focus prime start/stop on port %d failed: %s", port, e)
             output = _StreamingOutput()
             p.start_recording(MJPEGEncoder(), FileOutput(output))
             log.info("focus started on port %d (%dx%d, rotation=%d)",
