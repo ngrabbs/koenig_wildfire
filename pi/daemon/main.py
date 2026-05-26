@@ -23,6 +23,7 @@ from __future__ import annotations
 import atexit
 import logging
 import os
+import subprocess
 from pathlib import Path
 
 from apscheduler.schedulers.background import BackgroundScheduler
@@ -53,6 +54,7 @@ def _run_one_capture_cycle():
         path_fn_factory=lambda: store.burst_path_fn("jpg"),
         controls_for=settings.controls_for,
         resolution=settings.resolution(),
+        rotation_for=settings.rotation_for,
     )
 
 
@@ -176,7 +178,11 @@ def update_settings():
 @app.post("/focus/<int:port>/start")
 def focus_start(port: int):
     try:
-        cameras.start_focus(port, controls=settings.controls_for(port))
+        cameras.start_focus(
+            port,
+            controls=settings.controls_for(port),
+            rotation=settings.rotation_for(port),
+        )
     except BusyError as e:
         return jsonify(error=str(e), busy=True), 409
     except ValueError as e:
@@ -218,6 +224,30 @@ def focus_stream():
 def focus_stop():
     cameras.stop_focus()
     return jsonify(focus_port=cameras.focus_port())
+
+
+# ---------- system control --------------------------------------------------
+# Both endpoints delay the actual action by a couple of seconds so the HTTP
+# response flushes back to the operator's browser before the Pi goes away.
+def _schedule_system_command(args: list[str], delay_s: int = 2):
+    subprocess.Popen(
+        ["sh", "-c", f"sleep {delay_s} && {' '.join(args)}"],
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+        start_new_session=True,
+    )
+
+
+@app.post("/system/reboot")
+def system_reboot():
+    _schedule_system_command(["sudo", "/sbin/reboot"])
+    return jsonify(status="rebooting", in_seconds=2)
+
+
+@app.post("/system/shutdown")
+def system_shutdown():
+    _schedule_system_command(["sudo", "/sbin/shutdown", "-h", "now"])
+    return jsonify(status="shutting down", in_seconds=2)
 
 
 def main():

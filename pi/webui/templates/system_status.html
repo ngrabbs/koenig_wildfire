@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>{% if action == "reboot" %}Rebooting{% else %}Shutting down{% endif %} &mdash; Koenig Wildfire</title>
+  <style>
+    body { font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+           max-width: 640px; margin: 4em auto; padding: 0 1em; color: #222; }
+    h1 { color: #c0392b; }
+    .card { border: 1px solid #ddd; border-radius: 8px; padding: 1.5em;
+            background: #fafafa; }
+    code { background: #eee; padding: 0.15em 0.4em; border-radius: 3px;
+           font-size: 0.95em; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    {% if action == "reboot" %}
+      <h1>The Pi is rebooting</h1>
+      <p>Power will cycle and the services will restart automatically.
+         This usually takes about 30&ndash;60 seconds.</p>
+      <p>When you see the wifi reconnect, refresh this page or browse to
+         <code>http://koenig-pi.local:8000</code> again.</p>
+    {% else %}
+      <h1>The Pi is shutting down</h1>
+      <p>In a few seconds the Pi will fully power off. You will need to
+         <strong>physically unplug and re-plug the USB-C power cable</strong>
+         to bring it back up &mdash; there is no remote way to turn it on
+         again once it's off.</p>
+      <p>Wait for any activity LEDs to stop blinking before unplugging.</p>
+    {% endif %}
+    <p><a href="/">&larr; back to main page</a> (will only work once the Pi is back)</p>
+  </div>
+</body>
+</html>

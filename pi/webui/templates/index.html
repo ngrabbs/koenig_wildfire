@@ -60,6 +60,13 @@
     button.danger  { background: white; color: #c0392b; border-color: #c0392b; }
     button.danger:hover { background: #fdecea; }
     button.delete  { padding: 0.3em 0.7em; font-size: 0.85em; }
+    button.power   { background: white; color: #777; border-color: #ccc;
+                     font-size: 0.9em; padding: 0.45em 0.9em; }
+    button.power:hover { background: #fdecea; color: #c0392b; border-color: #c0392b; }
+
+    .power-footer { margin-top: 2em; padding-top: 1em; border-top: 1px solid #eee;
+                    display: flex; gap: 0.5em; justify-content: flex-end; }
+    .power-footer form { margin: 0; }
 
     .gallery { display: grid;
                grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
@@ -175,6 +182,30 @@
       </div>
 
       <div class="settings-section">
+        <h3>Camera mounting orientation (always per-camera)</h3>
+        <p style="font-size: 0.85em; color: #666; margin: 0.2em 0 0.6em;">
+          Some cameras can't be mounted right-side up due to physical fit.
+          Set 180&deg; on any camera whose image comes out upside-down. Rotation
+          is hardware-applied via libcamera Transform &mdash; no quality loss.
+        </p>
+        <div class="grid">
+          {% for port in camera_ports %}
+          <div class="field">
+            <label for="rotation_{{ port }}">Camera {{ port }} ({{ port_wavelengths[port] }} nm)</label>
+            <select id="rotation_{{ port }}" name="rotation_{{ port }}">
+              {% for deg in rotations_allowed %}
+              <option value="{{ deg }}"
+                {% if settings.rotations[port|string]|int == deg %}selected{% endif %}>
+                {{ deg }}&deg;
+              </option>
+              {% endfor %}
+            </select>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+
+      <div class="settings-section">
         <div class="checkbox-row">
           <input type="checkbox" id="advanced_mode" name="advanced_mode"
                  {% if settings.advanced_mode %}checked{% endif %} />
@@ -261,5 +292,16 @@
   {% else %}
   <p class="empty">No images yet. Click <strong>Capture</strong> to take the first one.</p>
   {% endif %}
+
+  <div class="power-footer">
+    <form action="/system/reboot" method="post"
+          onsubmit="return confirm('Reboot the Pi? It will be unavailable for about a minute.');">
+      <button class="power" type="submit">Reboot Pi</button>
+    </form>
+    <form action="/system/shutdown" method="post"
+          onsubmit="return confirm('Shut the Pi down? You will need to physically unplug and re-plug the power cable to turn it back on.');">
+      <button class="power" type="submit">Shutdown Pi</button>
+    </form>
+  </div>
 </body>
 </html>

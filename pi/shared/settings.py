@@ -58,6 +58,10 @@ BURST_COUNT_MAX = 200            # arbitrary sanity cap
 TIMER_INTERVAL_MIN = 5           # seconds; below this and bursts will overlap
 TIMER_INTERVAL_MAX = 24 * 3600   # one day
 
+# Per-camera rotation in degrees. 0 or 180 only — picamera2 does these in
+# hardware via Transform(hflip/vflip). 90/270 would need CPU post-rotation.
+ROTATIONS_ALLOWED: tuple[int, ...] = (0, 180)
+
 
 def _default_settings() -> dict:
     return {
@@ -65,6 +69,7 @@ def _default_settings() -> dict:
         "resolution": list(DEFAULT_RESOLUTION),
         "advanced_mode": False,
         "per_camera": {"0": {}, "1": {}, "2": {}},
+        "rotations": {"0": 0, "1": 0, "2": 0},
         "burst_count": 1,
         "timer": {"enabled": False, "interval_seconds": 60},
     }
@@ -103,6 +108,23 @@ def _coerce_burst_count(value) -> int:
     if not (1 <= n <= BURST_COUNT_MAX):
         raise ValueError(f"burst_count must be between 1 and {BURST_COUNT_MAX}")
     return n
+
+
+def _coerce_rotation(value) -> int:
+    n = int(value)
+    if n not in ROTATIONS_ALLOWED:
+        raise ValueError(f"rotation must be one of {ROTATIONS_ALLOWED}")
+    return n
+
+
+def _coerce_rotations(value: dict) -> dict[str, int]:
+    out = {"0": 0, "1": 0, "2": 0}
+    if not isinstance(value, dict):
+        raise ValueError("rotations must be a dict keyed by port string")
+    for k, v in value.items():
+        if k in out:
+            out[k] = _coerce_rotation(v)
+    return out
 
 
 def _coerce_timer(value: dict) -> dict:
@@ -182,6 +204,11 @@ class SettingsStore:
                 merged["timer"] = _coerce_timer(stored["timer"])
             except ValueError:
                 pass
+        if "rotations" in stored and isinstance(stored["rotations"], dict):
+            try:
+                merged["rotations"] = _coerce_rotations(stored["rotations"])
+            except ValueError:
+                pass
         return merged
 
     def snapshot(self) -> dict:
@@ -206,6 +233,11 @@ class SettingsStore:
                 new["burst_count"] = _coerce_burst_count(patch["burst_count"])
             if "timer" in patch and isinstance(patch["timer"], dict):
                 new["timer"] = _coerce_timer({**new["timer"], **patch["timer"]})
+            if "rotations" in patch and isinstance(patch["rotations"], dict):
+                merged_rot = {**new["rotations"], **{
+                    k: v for k, v in patch["rotations"].items() if k in new["rotations"]
+                }}
+                new["rotations"] = _coerce_rotations(merged_rot)
             self._data = new
             self._save()
             return copy.deepcopy(self._data)
@@ -235,3 +267,7 @@ class SettingsStore:
     def timer(self) -> dict:
         with self._lock:
             return dict(self._data["timer"])
+
+    def rotation_for(self, port: int) -> int:
+        with self._lock:
+            return int(self._data["rotations"].get(str(port), 0))

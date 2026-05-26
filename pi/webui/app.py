@@ -8,7 +8,7 @@ import os
 import urllib.error
 import urllib.request
 
-from ..shared.settings import CONTROL_SCHEMA, RESOLUTIONS, BURST_COUNT_MAX
+from ..shared.settings import CONTROL_SCHEMA, RESOLUTIONS, BURST_COUNT_MAX, ROTATIONS_ALLOWED
 
 DAEMON_URL = os.environ.get("KOENIG_DAEMON_URL", "http://127.0.0.1:8001")
 LISTEN_HOST = os.environ.get("KOENIG_WEBUI_HOST", "0.0.0.0")
@@ -99,7 +99,9 @@ def index():
         control_names=CONTROL_NAMES,
         bool_controls=BOOL_CONTROLS,
         resolutions=RESOLUTIONS,
+        rotations_allowed=ROTATIONS_ALLOWED,
         camera_ports=CAMERA_PORTS,
+        port_wavelengths=PORT_WAVELENGTH,
         burst_count_max=BURST_COUNT_MAX,
         interval_value=interval_value,
         interval_unit=interval_unit,
@@ -143,6 +145,13 @@ def update_settings():
         patch["resolution"] = form["resolution"]
     if "burst_count" in form and form["burst_count"].strip():
         patch["burst_count"] = form["burst_count"]
+    rotations: dict[str, str] = {}
+    for port in CAMERA_PORTS:
+        key = f"rotation_{port}"
+        if key in form and form[key].strip():
+            rotations[str(port)] = form[key]
+    if rotations:
+        patch["rotations"] = rotations
     if "timer_value" in form and form["timer_value"].strip():
         try:
             value = int(form["timer_value"])
@@ -223,6 +232,18 @@ def focus_stream():
 def focus_stop():
     _request("/focus/stop", "POST")
     return redirect(url_for("index"))
+
+
+@app.post("/system/reboot")
+def system_reboot():
+    _request("/system/reboot", "POST")
+    return render_template("system_status.html", action="reboot")
+
+
+@app.post("/system/shutdown")
+def system_shutdown():
+    _request("/system/shutdown", "POST")
+    return render_template("system_status.html", action="shutdown")
 
 
 def main():

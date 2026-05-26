@@ -57,10 +57,20 @@ class CaptureResult(NamedTuple):
 
 
 ControlsFn = Callable[[int], dict]
+RotationFn = Callable[[int], int]
 
 # Default preview resolution for focus mode. High enough to see edge
 # sharpness, low enough to stream smoothly over wifi.
 FOCUS_PREVIEW_SIZE = (1332, 990)
+
+
+def _transform_for(rotation: int):
+    """Build a libcamera Transform for the given rotation in degrees.
+    Only 0 and 180 are supported (hardware hflip/vflip)."""
+    from libcamera import Transform
+    if rotation == 180:
+        return Transform(hflip=1, vflip=1)
+    return Transform()
 
 
 class _StreamingOutput(io.BufferedIOBase):
@@ -90,24 +100,31 @@ class Cameras:
         from picamera2 import Picamera2  # lazy: dev hosts without picamera2 can still import
         self._Picamera2 = Picamera2
         self._picams: dict[int, "Picamera2"] = {}
-        self._configured_size: dict[int, Optional[tuple[int, int]]] = {}
+        # Track (size, rotation) per port so we know when to reconfigure.
+        self._configured: dict[int, Optional[tuple[tuple[int, int], int]]] = {}
         for ch in CHANNELS:
             p = Picamera2(camera_num=ch.port)
-            self._configure_still(p, default_resolution)
+            self._configure_still(p, default_resolution, 0)
             self._picams[ch.port] = p
-            self._configured_size[ch.port] = default_resolution
+            self._configured[ch.port] = (default_resolution, 0)
         self._busy = threading.Lock()
         # Focus session state
         self._focus_port: Optional[int] = None
         self._focus_output: Optional[_StreamingOutput] = None
 
     # ---------- configuration helpers ----------
-    def _configure_still(self, p, size: tuple[int, int]) -> None:
-        cfg = p.create_still_configuration(main={"size": size})
+    def _configure_still(self, p, size: tuple[int, int], rotation: int) -> None:
+        cfg = p.create_still_configuration(
+            main={"size": size},
+            transform=_transform_for(rotation),
+        )
         p.configure(cfg)
 
-    def _configure_video(self, p, size: tuple[int, int]) -> None:
-        cfg = p.create_video_configuration(main={"size": size})
+    def _configure_video(self, p, size: tuple[int, int], rotation: int) -> None:
+        cfg = p.create_video_configuration(
+            main={"size": size},
+            transform=_transform_for(rotation),
+        )
         p.configure(cfg)
 
     # ---------- capture ----------
@@ -116,13 +133,18 @@ class Cameras:
         path_for: Callable[[Channel], Path],
         controls_for: Optional[ControlsFn],
         resolution: Optional[tuple[int, int]],
+        rotation_for: Optional[RotationFn],
     ) -> list[CaptureResult]:
         results: list[CaptureResult] = []
         for ch in CHANNELS:
             p = self._picams[ch.port]
-            if resolution is not None and self._configured_size[ch.port] != resolution:
-                self._configure_still(p, resolution)
-                self._configured_size[ch.port] = resolution
+            desired_size = resolution
+            desired_rot = rotation_for(ch.port) if rotation_for else 0
+            if desired_size is not None:
+                desired = (desired_size, desired_rot)
+                if self._configured[ch.port] != desired:
+                    self._configure_still(p, desired_size, desired_rot)
+                    self._configured[ch.port] = desired
             if controls_for is not None:
                 p.set_controls(controls_for(ch.port))
             p.start()
@@ -140,6 +162,7 @@ class Cameras:
         path_fn_factory: Callable[[], Callable[[Channel], Path]],
         controls_for: Optional[ControlsFn] = None,
         resolution: Optional[tuple[int, int]] = None,
+        rotation_for: Optional[RotationFn] = None,
     ) -> list[CaptureResult]:
         """Run N consecutive 3-channel bursts. path_fn_factory is called once
         per burst to produce a fresh (channel)->Path closure — that's how each
@@ -154,7 +177,9 @@ class Cameras:
             all_results: list[CaptureResult] = []
             for _ in range(n):
                 path_for = path_fn_factory()
-                all_results.extend(self._single_burst(path_for, controls_for, resolution))
+                all_results.extend(
+                    self._single_burst(path_for, controls_for, resolution, rotation_for)
+                )
             return all_results
         finally:
             self._busy.release()
@@ -163,7 +188,8 @@ class Cameras:
     def focus_port(self) -> Optional[int]:
         return self._focus_port
 
-    def start_focus(self, port: int, controls: Optional[dict] = None) -> None:
+    def start_focus(self, port: int, controls: Optional[dict] = None,
+                    rotation: int = 0) -> None:
         """Acquire the camera lock and start an MJPEG stream from `port`.
 
         Raises BusyError if a capture or another focus is in progress, and
@@ -177,8 +203,8 @@ class Cameras:
             from picamera2.encoders import MJPEGEncoder
             from picamera2.outputs import FileOutput
             p = self._picams[port]
-            self._configure_video(p, FOCUS_PREVIEW_SIZE)
-            self._configured_size[port] = None  # force reconfigure back to still after focus
+            self._configure_video(p, FOCUS_PREVIEW_SIZE, rotation)
+            self._configured[port] = None  # force reconfigure back to still after focus
             if controls:
                 p.set_controls(controls)
             output = _StreamingOutput()
