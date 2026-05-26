@@ -205,6 +205,16 @@ If you forget to click Exit and just close the browser tab, the Pi
 notices the disconnect within a few seconds and releases the camera
 automatically, so capturing still works on your next visit.
 
+> **Known quirk — black image on the first focus click after boot.**
+> Occasionally the very first focus session after the Pi has powered
+> on (especially on **cam 0**) comes up as a completely black image,
+> even though the camera and lens are fine. The fix is trivial: click
+> **Exit focus**, then click the same **Focus cam N** button again.
+> The second attempt comes up immediately. Subsequent focus sessions
+> on any camera work first-click for the rest of the boot. This is
+> a known software bug we haven't tracked down yet — it doesn't affect
+> capture quality, just the live-preview pipeline.
+
 # Operating the payload in the field
 
 *To be filled in after Phase 5.*
@@ -267,6 +277,22 @@ three:
 ## "The pictures are all black / all white"
 
 *(placeholder)*
+
+## "Focus mode shows a completely black image"
+
+If this is the first focus session after the Pi booted, just **click
+Exit and click the same Focus button again**. The second attempt comes
+up live. After that, focus on any of the three cameras works
+first-click for the rest of the boot. This is a known software bug
+that doesn't affect captures.
+
+If you see a black focus image *and* the double-click trick doesn't
+help, check the obvious physical things on that camera:
+
+- Lens cap on?
+- Lens iris closed all the way? (Some lenses have a manual aperture
+  ring — slide it to the open position.)
+- Camera pointed at something completely dark?
 
 ## "It says 'busy' when I press capture"
 
