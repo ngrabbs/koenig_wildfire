@@ -75,16 +75,21 @@ def _transform_for(rotation: int):
 
 class _StreamingOutput(io.BufferedIOBase):
     """Picamera2 writes JPEG frames here; readers block on the condition
-    until a new frame is available."""
+    until a new frame is available. Tracks an encoder-side frame count so
+    we can tell from logs whether a black-screen incident is "encoder
+    never produced frames" vs "frames produced but never delivered."
+    """
 
     def __init__(self):
         super().__init__()
         self.frame: Optional[bytes] = None
+        self.encoder_frame_count: int = 0
         self.condition = threading.Condition()
 
     def write(self, buf):  # picamera2 calls this for every JPEG frame
         with self.condition:
             self.frame = bytes(buf)
+            self.encoder_frame_count += 1
             self.condition.notify_all()
 
 
@@ -203,12 +208,26 @@ class Cameras:
             from picamera2.encoders import MJPEGEncoder
             from picamera2.outputs import FileOutput
             p = self._picams[port]
+            # Belt-and-suspenders: ensure the camera is fully stopped before
+            # reconfiguring. A previous focus exit or capture's stop() may
+            # have left transitional state; configure() while not-fully-stopped
+            # produces an encoder that never emits frames (= black screen).
+            try:
+                p.stop_recording()
+            except Exception:
+                pass
+            try:
+                p.stop()
+            except Exception:
+                pass
             self._configure_video(p, FOCUS_PREVIEW_SIZE, rotation)
             self._configured[port] = None  # force reconfigure back to still after focus
             if controls:
                 p.set_controls(controls)
             output = _StreamingOutput()
             p.start_recording(MJPEGEncoder(), FileOutput(output))
+            log.info("focus started on port %d (%dx%d, rotation=%d)",
+                     port, FOCUS_PREVIEW_SIZE[0], FOCUS_PREVIEW_SIZE[1], rotation)
             self._focus_port = port
             self._focus_output = output
         except Exception:
@@ -250,20 +269,30 @@ class Cameras:
         output = self._focus_output
         if output is None:
             return
-        last_frame_id = id(output)  # captured for invalidation
+        delivered = 0
+        consecutive_silent = 0
         while True:
             with output.condition:
                 got = output.condition.wait(timeout=timeout)
                 # If stop_focus() ran, our captured output won't match the new state.
                 if self._focus_output is not output:
+                    log.info("focus stream ended after %d frames delivered (encoder produced %d)",
+                             delivered, output.encoder_frame_count)
                     return
                 if not got:
-                    # No new frame for `timeout` seconds — keep waiting but
-                    # also let the caller's loop run so it can detect upstream
-                    # disconnect.
+                    consecutive_silent += 1
+                    if consecutive_silent in (1, 3, 6):
+                        log.warning(
+                            "focus stream stalled: %ds with no new frame "
+                            "(encoder produced %d, delivered %d)",
+                            int(consecutive_silent * timeout),
+                            output.encoder_frame_count, delivered,
+                        )
                     continue
+                consecutive_silent = 0
                 frame = output.frame
             if frame:
+                delivered += 1
                 yield frame
 
     def close(self) -> None:
