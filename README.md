@@ -23,7 +23,9 @@ web UI on the Pi.
 The implementation is being built in phases. See
 [`docs/architecture.md`](docs/architecture.md) for the target design and
 the operator manual ([`docs/operator_manual.md`](docs/operator_manual.md))
-for the user-facing build that grows feature-by-feature.
+for the user-facing build that grows feature-by-feature. The physical
+payload — plates, optics, power, and what's still missing — is described
+in [`docs/payload_build.md`](docs/payload_build.md).
 
 ## Repo layout
 
@@ -34,7 +36,7 @@ for the user-facing build that grows feature-by-feature.
 | `pi/shared/` | Settings schema and IPC shared between daemon and UI |
 | `pi/systemd/` | systemd unit files for auto-start on boot |
 | `pi/tests/` | Unit + integration tests |
-| `docs/` | Operator manual, architecture, primer, references |
+| `docs/` | Operator manual, payload build, architecture, primer, references |
 | `docs/img/` | Screenshots and figures referenced from markdown |
 | `tools/` | Build scripts (PDF render, install helpers) |
 | `hardware/` | Filter-holder STLs and SolidWorks sources |

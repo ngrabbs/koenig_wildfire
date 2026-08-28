@@ -10,19 +10,22 @@ OPERATOR_MD       := docs/operator_manual.md
 ARCHITECTURE_MD   := docs/architecture.md
 HARDWARE_MD       := docs/hardware_setup.md
 PRIMER_MD         := docs/k_line_primer.md
+PAYLOAD_MD        := docs/payload_build.md
 
 OPERATOR_PDF      := $(BUILD_DIR)/operator_manual.pdf
 ARCHITECTURE_PDF  := $(BUILD_DIR)/architecture.pdf
 HARDWARE_PDF      := $(BUILD_DIR)/hardware_setup.pdf
 PRIMER_PDF        := $(BUILD_DIR)/k_line_primer.pdf
+PAYLOAD_PDF       := $(BUILD_DIR)/payload_build.pdf
 
-.PHONY: pdf architecture-pdf hardware-pdf primer-pdf all-pdfs clean help
+.PHONY: pdf architecture-pdf hardware-pdf primer-pdf payload-pdf all-pdfs clean help
 
 help:
 	@echo "make pdf              - build the operator manual PDF"
 	@echo "make architecture-pdf - build the architecture doc PDF"
 	@echo "make hardware-pdf     - build the hardware setup PDF"
 	@echo "make primer-pdf       - build the K-line primer PDF"
+	@echo "make payload-pdf      - build the payload build PDF"
 	@echo "make all-pdfs         - build all of the above"
 	@echo "make clean            - remove docs/build/"
 
@@ -30,8 +33,9 @@ pdf: $(OPERATOR_PDF)
 architecture-pdf: $(ARCHITECTURE_PDF)
 hardware-pdf: $(HARDWARE_PDF)
 primer-pdf: $(PRIMER_PDF)
+payload-pdf: $(PAYLOAD_PDF)
 
-all-pdfs: pdf architecture-pdf hardware-pdf primer-pdf
+all-pdfs: pdf architecture-pdf hardware-pdf primer-pdf payload-pdf
 
 $(OPERATOR_PDF): $(OPERATOR_MD) tools/pandoc/pandoc-ipad-readable.yaml tools/pandoc/ipad-tech-header.tex
 	$(RENDER) $(OPERATOR_MD) $@
@@ -44,6 +48,9 @@ $(HARDWARE_PDF): $(HARDWARE_MD) tools/pandoc/pandoc-ipad-readable.yaml tools/pan
 
 $(PRIMER_PDF): $(PRIMER_MD) tools/pandoc/pandoc-ipad-readable.yaml tools/pandoc/ipad-tech-header.tex
 	$(RENDER) $(PRIMER_MD) $@
+
+$(PAYLOAD_PDF): $(PAYLOAD_MD) tools/pandoc/pandoc-ipad-readable.yaml tools/pandoc/ipad-tech-header.tex
+	$(RENDER) $(PAYLOAD_MD) $@
 
 clean:
 	rm -rf $(BUILD_DIR)

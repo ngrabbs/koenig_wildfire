@@ -85,3 +85,7 @@ yarn-error.log*
 *.rar
 *.pdf  # (Optional: exclude if PDFs are generated artifacts)
 
+
+# macOS metadata droppings
+.DS_Store
+._*

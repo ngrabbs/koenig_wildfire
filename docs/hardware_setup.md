@@ -15,7 +15,9 @@ end you should have a Pi that:
 - Joins your wifi if known, falls back to AP mode if not.
 
 If the payload is already built and you just want to use it, you want
-`operator_manual.md` instead.
+`operator_manual.md` instead. For the **physical** build — the plates,
+the stack-up, the optics, and the power pack — see
+[`payload_build.md`](payload_build.md).
 
 > **Status — Phase 5b (field-ready).** OS setup, wiring, mux
 > dtoverlay, bring-up checks, software install, and AP-fallback wifi
@@ -33,10 +35,15 @@ If the payload is already built and you just want to use it, you want
 | Narrowband filter — 766 nm | 1 | On-line |
 | Narrowband filter — 770 nm | 1 | On-line |
 | 3D-printed filter holders | 3 | STLs in `../hardware/stl/` |
+| CubeSat bottom panel | 1 | 3D print — base of the stack |
+| Camera plate | 1 | 3D print — holds the three cameras. See `payload_build.md` |
+| Battery enclosure (base + vented lid) | 1 | 3D print — screws into the standoffs |
+| Hex standoffs | set | Tie panel, plate, Pi and battery into one rigid package |
 | 15-pin CSI ribbon cable | 3 | One per camera, mux↔camera |
 | 15-pin CSI ribbon cable | 1 | **Pi↔mux** — easy to forget, the HAT does *not* route MIPI through the GPIO header |
 | USB SSD | 1 | Recommended for sustained timer mode |
-| Pi 4 power supply (5 V, 3 A USB-C) | 1 | — |
+| Pi 4 power supply (5 V, 3 A USB-C) | 1 | Bench use |
+| Adafruit USB battery pack, 10 000 mAh / 37 Wh, 2 × 5 V | 1 | Field/flight power. Watch for under-voltage — see `payload_build.md` |
 | MicroSD card (32 GB +) | 1 | Boot disk |
 
 # Pi OS setup
