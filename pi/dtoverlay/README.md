@@ -68,27 +68,53 @@ copying `imx477_378.dtsi` does not work: the clock is named `inck` not
 `xclk`, the supplies are `avdd`/`dvdd`/`ovdd` not `VANA`/`VDIG`/`VDDL`, and
 it runs **one** CSI data lane at 594 MHz rather than two.
 
-**Clock.** `drivers/media/i2c/imx296.c` accepts exactly two INCK rates,
-37.125 MHz and 54 MHz, and rejects anything else at probe — the mux's usual
-`clk_24mhz` is unusable. We default to 37.125 MHz (reusing the rate upstream
-already provides for IMX290). If probe fails complaining about the clock,
-the modules are 54 MHz parts:
+**Clock — this is the one that cost the most time.**
+`drivers/media/i2c/imx296.c` accepts exactly two INCK rates, 37.125 MHz and
+54 MHz, and rejects anything else at probe, so the mux's usual `clk_24mhz`
+is unusable. We default to **54 MHz**, which is what the InnoMaker
+CAM-IMX296RAW's onboard oscillator runs at.
+
+The failure mode when this is wrong is deeply misleading. The declared rate
+is only ever a *declaration*: `clk_imx296` is a `fixed-clock`, so it tells
+the driver what to assume and generates nothing. The module carries its own
+crystal. Declare the wrong rate and the driver programs its INCKSEL
+registers for a frequency the silicon isn't running at — i2c keeps working
+perfectly (the driver reads the model ID and per-sensor temperature), the
+media graph negotiates cleanly, and then **no MIPI data ever arrives**:
 
 ```
-dtoverlay=koenig-mux-4port,cam0-imx296,...,cam0-imx296-clk-freq=54000000
+Camera frontend has timed out!
+Please check that your camera sensor connector is attached securely.
 ```
 
-**Status: plumbing verified, sensor untested.** With IMX477 hardware still
-fitted and `cam0-imx296` selected, the kernel logs:
+Nothing anywhere points at the clock. We chased cables and lane counts for
+a long time before the rate turned out to be it. If a future module wants
+37.125 MHz instead:
 
 ```
-imx296 23-001a: invalid device model 0x0000
+dtoverlay=koenig-mux-4port,cam0-imx296,...,cam0-imx296-clk-freq=37125000
 ```
 
-That is the driver binding, resolving its clock and regulators, and reading
-the sensor ID over i2c. Everything above the sensor is correct; it found the
-wrong chip because an IMX477 is physically installed. Confirming the rest
-needs the IMX296 plate fitted.
+**Host XCLK is not needed.** The mux overlay leaves the Pi's `cam0_clk` /
+`cam1_clk` generators disabled, and that is correct — these modules are
+self-clocked. Enabling `cam1_clk` was tried and changes nothing.
+
+**Status: working.** Verified end to end on 2026-08-29 with three InnoMaker
+CAM-IMX296RAW modules on the mono plate — all three enumerate as
+`imx296 [1456x1088 10-bit MONO]`, capture through the daemon at ~0.45 s for
+the three-channel cycle, and live focus streams. No extra flags needed
+beyond `camN-imx296`.
+
+Two lane bugs had to be fixed to get there, both of which upstream leaves
+unhandled for any 1-lane sensor on this mux:
+
+- `mux_inN` defaults to `data-lanes = <1 2>` with a dormant 1-lane variant
+  nothing activates. `camN-imx296` now toggles it (`+100-101` per port),
+  the same way upstream's `cam0-ov7251` does.
+- `fragment@201` hardcodes `csi1_ep` to `data-lanes = <1 2>` and upstream
+  offers no override at all, so unicam itself stayed at two lanes. Added
+  `fragment@210` as a dormant 1-lane variant, numbered above 201 so it
+  applies later, activated by the same override.
 
 > **Do not mix sensor types.** If any configured port fails to probe, the
 > whole video-mux media graph fails to register and libcamera reports "No

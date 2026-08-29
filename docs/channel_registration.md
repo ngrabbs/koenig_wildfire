@@ -311,6 +311,38 @@ Do not fly a translating pass and expect clean triplets.
   should be nearly identical, but this needs testing rather than assuming.
 - **How much does a hover actually help?** Untested. One session comparing
   hover captures against translating-pass captures would quantify it.
-- **Is 0.45 s good enough?** Unknown until we fly it. If not, the remaining
-  levers are a global-shutter sensor (IMX296, blocked on `imx296.dtsi`) or
-  hardware-synchronised capture (Arducam Camarray, cost).
+- **Is 0.45 s good enough?** Unknown until we fly it.
+
+# Update 2026-08-29 — both remaining levers just became available
+
+The two fallbacks named above were written when the IMX296 could not run
+through the mux at all. That is no longer true, and it changes the outlook
+on this whole document.
+
+**Global shutter is now available.** The IMX296 plate is fitted and working
+(see [`../pi/dtoverlay/README.md`](../pi/dtoverlay/README.md)). Global
+shutter removes rolling-shutter skew *within* each frame — the distortion
+that gets worse the faster the aircraft moves. It does nothing for
+displacement *between* channels, which is still the sequential-capture
+problem, but it removes one of the two motion artefacts outright.
+
+**Hardware synchronisation may no longer need the Camarray.** The modules
+fitted are InnoMaker CAM-IMX296RAW, which carry **dedicated hardware
+trigger input and strobe output pins**, supported on Raspberry Pi. If all
+three cameras can be driven from one trigger, the three channels expose
+*simultaneously* rather than 0.45 s apart — which does not merely reduce
+inter-channel displacement, it eliminates it, along with the entire need
+for per-triplet registration on a moving platform.
+
+That would resolve the core finding of this document. It is the single
+highest-value thing to investigate next, and it is worth doing before
+tuning anything else here.
+
+Unknowns to settle first: whether the Arducam v2.2 mux passes a trigger
+signal through at all (it is a CSI switch, so the trigger likely has to be
+wired directly to each module, bypassing the mux), and whether the three
+sensors can be read out sequentially after a simultaneous exposure — the
+CSI switch still only carries one camera's data at a time, so the frames
+would need to be held on-sensor and read out one after another.
+
+Reference: <https://github.com/INNO-MAKER/cam-imx296raw-trigger>

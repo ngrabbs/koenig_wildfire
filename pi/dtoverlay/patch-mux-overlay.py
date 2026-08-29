@@ -79,8 +79,10 @@ def main() -> int:
         "\t\t\t\tcompatible = \"fixed-clock\";\n"
         "\t\t\t\t#clock-cells = <0>;\n"
         "\n"
-        "\t\t\t\t/* imx296.c accepts 37.125 MHz or 54 MHz only. */\n"
-        "\t\t\t\tclock-frequency = <37125000>;\n"
+        "\t\t\t\t/* imx296.c accepts 37.125 MHz or 54 MHz only.\n"
+        "\t\t\t\t * 54 MHz is what the InnoMaker CAM-IMX296RAW's onboard\n"
+        "\t\t\t\t * oscillator runs at - see the note in the build script. */\n"
+        "\t\t\t\tclock-frequency = <54000000>;\n"
         "\t\t\t\tstatus = \"okay\";\n"
         "\t\t\t};\n"
         "\n"
@@ -158,6 +160,9 @@ def main() -> int:
         f"\t\t\t      <0>,\"+{100 + 2 * p}-{101 + 2 * p}+210\";"
         for p in range(4)
     )
+    # Retunes the rate declared to the driver. The module carries its own
+    # oscillator, so this must match the crystal on the board - it does not
+    # program anything on the Pi.
     clk_overrides = "\n".join(
         f"\t\tcam{p}-imx296-clk-freq = <&clk_imx296>,\"clock-frequency:0\";"
         for p in range(4)

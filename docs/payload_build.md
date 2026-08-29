@@ -103,7 +103,7 @@ blocker is fitting the plate, not software. Original reasoning in
 [`architecture.md`](architecture.md) and
 [`../pi/dtoverlay/README.md`](../pi/dtoverlay/README.md).
 
-## Monochrome plate — IMX296 (not flyable yet)
+## Monochrome plate — IMX296 (working as of 2026-08-29)
 
 ![The monochrome plate, sensor side. Three cameras with lens caps on.](img/payload4.jpg){ width=75% }
 
@@ -120,10 +120,21 @@ Three **IMX296** global-shutter monochrome cameras. On paper this is the
 
 The K-line primer names IMX296 specifically. It could not be used through
 the multiplexer at all until 2026-08-29, when the missing device-tree
-support was written (`pi/dtoverlay/imx296.dtsi`). The overlay now offers
-`camN-imx296` and the plumbing is verified as far as it can be with IMX477
-hardware still fitted. **What remains is physical: fit this plate.** See
-[Next hardware tasks](#next-hardware-tasks).
+support was written (`pi/dtoverlay/imx296.dtsi`). **This plate is now
+fitted and working** — all three modules enumerate, capture through the web
+UI, and stream in focus mode. Set with:
+
+```
+dtoverlay=koenig-mux-4port,cam0-imx296,cam1-imx296,cam2-imx296
+```
+
+The modules are InnoMaker **CAM-IMX296RAW**, self-clocked from an onboard
+54 MHz oscillator. Details and the failure modes to watch for are in
+[`../pi/dtoverlay/README.md`](../pi/dtoverlay/README.md).
+
+> **These modules have hardware trigger and strobe pins.** That is a
+> potential answer to the biggest open problem on this payload — see
+> [`channel_registration.md`](channel_registration.md).
 
 ## Focus mechanism — the mono plate is better
 
@@ -282,8 +293,7 @@ Be honest with anyone you hand this to. The following are **not done**:
 3. **The channels are not radiometrically calibrated.** See the section
    above — cam 2 currently runs ~2.5× hot relative to the other two.
 
-4. **The IMX296 plate is not fitted.** The device-tree support it needed
-   now exists; the swap itself has not been done or tested.
+4. *(resolved 2026-08-29 — the IMX296 plate is fitted and working.)*
 
 5. **The operator manual is not finalised** (Phase 6). Screenshots and
    the troubleshooting section are still stubs.
