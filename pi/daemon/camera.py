@@ -9,6 +9,10 @@ Phase 4b: capture_bursts(n) runs N consecutive 3-channel bursts under
 Phase 5a: start_focus(port) / stop_focus() / iter_frames() implement a
   live MJPEG stream for one camera at a time. Uses the same lock —
   while focus is active, captures get BusyError.
+Post-TL-002: _single_burst splits frame grab from JPEG encode so encoding
+  no longer sits between two channels. Flight data showed 1-2 s between
+  the first and last channel of a triplet, which is the dominant source of
+  channel misregistration. See docs/channel_registration.md.
 
 The kernel's video-mux + pca954x drivers handle the physical port
 switching when we start a Picamera2 instance on a specific camera_num.
@@ -140,26 +144,54 @@ class Cameras:
         resolution: Optional[tuple[int, int]],
         rotation_for: Optional[RotationFn],
     ) -> list[CaptureResult]:
-        results: list[CaptureResult] = []
-        for ch in CHANNELS:
-            p = self._picams[ch.port]
-            desired_size = resolution
-            desired_rot = rotation_for(ch.port) if rotation_for else 0
-            if desired_size is not None:
-                desired = (desired_size, desired_rot)
-                if self._configured[ch.port] != desired:
-                    self._configure_still(p, desired_size, desired_rot)
-                    self._configured[ch.port] = desired
-            if controls_for is not None:
-                p.set_controls(controls_for(ch.port))
-            p.start()
-            try:
-                path = path_for(ch)
-                p.capture_file(str(path))
-            finally:
-                p.stop()
-            results.append(CaptureResult(ch.port, ch.wavelength_nm, path))
-        return results
+        """Capture one frame per channel, in two phases.
+
+        Phase 1 grabs all three frames back to back. Phase 2 encodes them to
+        JPEG afterwards. The split matters because the three channels are the
+        same scene at different wavelengths, and anything that happens between
+        two grabs is time for the aircraft to move — misregistration we have
+        to correct later. JPEG encoding is ~50 ms per frame at 2028x1520, so
+        doing it inline put ~100 ms of pure CPU work in the middle of the
+        window we are trying to shrink. Encoding after the last grab costs the
+        same total time but keeps it out of the inter-channel gap.
+
+        `capture_request()` hands back a buffer that stays valid after stop(),
+        so we can defer save() without copying the frame out.
+        See docs/channel_registration.md.
+        """
+        # Phase 1 — grab. Keep this loop as tight as possible.
+        requests: list[tuple[Channel, Path, object]] = []
+        try:
+            for ch in CHANNELS:
+                p = self._picams[ch.port]
+                desired_size = resolution
+                desired_rot = rotation_for(ch.port) if rotation_for else 0
+                if desired_size is not None:
+                    desired = (desired_size, desired_rot)
+                    if self._configured[ch.port] != desired:
+                        self._configure_still(p, desired_size, desired_rot)
+                        self._configured[ch.port] = desired
+                if controls_for is not None:
+                    p.set_controls(controls_for(ch.port))
+                p.start()
+                try:
+                    req = p.capture_request()
+                finally:
+                    p.stop()
+                requests.append((ch, path_for(ch), req))
+
+            # Phase 2 — encode. Off the inter-channel path.
+            results: list[CaptureResult] = []
+            for ch, path, req in requests:
+                req.save("main", str(path))
+                results.append(CaptureResult(ch.port, ch.wavelength_nm, path))
+            return results
+        finally:
+            for _, _, req in requests:
+                try:
+                    req.release()
+                except Exception:
+                    log.exception("failed to release capture request")
 
     def capture_bursts(
         self,

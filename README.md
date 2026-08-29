@@ -36,7 +36,7 @@ in [`docs/payload_build.md`](docs/payload_build.md).
 | `pi/shared/` | Settings schema and IPC shared between daemon and UI |
 | `pi/systemd/` | systemd unit files for auto-start on boot |
 | `pi/tests/` | Unit + integration tests |
-| `docs/` | Operator manual, payload build, architecture, primer, references |
+| `docs/` | Operator manual, payload build, channel registration, architecture, primer, references |
 | `docs/img/` | Screenshots and figures referenced from markdown |
 | `tools/` | Build scripts (PDF render, install helpers) |
 | `hardware/` | Filter-holder STLs and SolidWorks sources |

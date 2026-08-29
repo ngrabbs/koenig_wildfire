@@ -87,6 +87,15 @@ layer that talks to the daemon over local HTTP.
 
 The cost is two services to ship instead of one. Worth it.
 
+> **Superseded (2026-08-29).** The filter set actually ordered is
+> Thorlabs FBH750-10 / FBH770-10 / FBH780-10 (750 / 770 / 780 nm, 10 nm
+> FWHM) — a *bracketing* design, not the 762 / 766 / 770 scheme this
+> document describes. The `(S766 + S770) / (2 · S762)` ratio below is
+> therefore out of date: the continuum under the line is now interpolated
+> between the 750 and 780 references. See
+> [`channel_registration.md`](channel_registration.md). This section is
+> left as written until the filters arrive and the rename lands together.
+
 ## Sensor pick: IMX477 today, IMX296 as a future option
 
 We had both on the bench. IMX296RAW is the *better* sensor for this

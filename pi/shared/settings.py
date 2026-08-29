@@ -47,11 +47,23 @@ CONTROL_SCHEMA: dict[str, dict] = {
 # IMX477 still-config sizes we expose. (Width, height) → label.
 RESOLUTIONS: list[tuple[int, int]] = [
     (4056, 3040),   # full sensor
-    (2028, 1520),   # 2x2 binned, faster, smaller
-    (1332, 990),    # crop, fastest
+    (2028, 1520),   # 2x2 binned, full FOV, faster, better SNR — default
+    (1332, 990),    # crop, fastest, NARROWER field of view
 ]
 
-DEFAULT_RESOLUTION = (4056, 3040)
+# 2028x1520 rather than the full 4056x3040. Two reasons, both from TL-002
+# (see docs/channel_registration.md):
+#
+#   Speed — it more than halves the three-channel cycle, 1.18 s -> 0.52 s
+#   measured on the rig. That cycle time is the dominant cause of channel
+#   misregistration, because the aircraft moves between exposures.
+#
+#   SNR — this is the sensor's native 2x2 binned mode, so four photosites
+#   are summed per output pixel. Once the 10 nm narrowband filters cut
+#   ~98% of the light, signal-to-noise is the scarce resource, not pixels.
+#
+# It keeps the full field of view (1332x990 does not) and is still 3.1 MP.
+DEFAULT_RESOLUTION = (2028, 1520)
 
 
 BURST_COUNT_MAX = 200            # arbitrary sanity cap

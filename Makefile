@@ -11,14 +11,16 @@ ARCHITECTURE_MD   := docs/architecture.md
 HARDWARE_MD       := docs/hardware_setup.md
 PRIMER_MD         := docs/k_line_primer.md
 PAYLOAD_MD        := docs/payload_build.md
+REGIST_MD         := docs/channel_registration.md
 
 OPERATOR_PDF      := $(BUILD_DIR)/operator_manual.pdf
 ARCHITECTURE_PDF  := $(BUILD_DIR)/architecture.pdf
 HARDWARE_PDF      := $(BUILD_DIR)/hardware_setup.pdf
 PRIMER_PDF        := $(BUILD_DIR)/k_line_primer.pdf
 PAYLOAD_PDF       := $(BUILD_DIR)/payload_build.pdf
+REGIST_PDF        := $(BUILD_DIR)/channel_registration.pdf
 
-.PHONY: pdf architecture-pdf hardware-pdf primer-pdf payload-pdf all-pdfs clean help
+.PHONY: pdf architecture-pdf hardware-pdf primer-pdf payload-pdf registration-pdf all-pdfs clean help
 
 help:
 	@echo "make pdf              - build the operator manual PDF"
@@ -26,6 +28,7 @@ help:
 	@echo "make hardware-pdf     - build the hardware setup PDF"
 	@echo "make primer-pdf       - build the K-line primer PDF"
 	@echo "make payload-pdf      - build the payload build PDF"
+	@echo "make registration-pdf - build the channel registration PDF"
 	@echo "make all-pdfs         - build all of the above"
 	@echo "make clean            - remove docs/build/"
 
@@ -34,8 +37,9 @@ architecture-pdf: $(ARCHITECTURE_PDF)
 hardware-pdf: $(HARDWARE_PDF)
 primer-pdf: $(PRIMER_PDF)
 payload-pdf: $(PAYLOAD_PDF)
+registration-pdf: $(REGIST_PDF)
 
-all-pdfs: pdf architecture-pdf hardware-pdf primer-pdf payload-pdf
+all-pdfs: pdf architecture-pdf hardware-pdf primer-pdf payload-pdf registration-pdf
 
 $(OPERATOR_PDF): $(OPERATOR_MD) tools/pandoc/pandoc-ipad-readable.yaml tools/pandoc/ipad-tech-header.tex
 	$(RENDER) $(OPERATOR_MD) $@
@@ -51,6 +55,9 @@ $(PRIMER_PDF): $(PRIMER_MD) tools/pandoc/pandoc-ipad-readable.yaml tools/pandoc/
 
 $(PAYLOAD_PDF): $(PAYLOAD_MD) tools/pandoc/pandoc-ipad-readable.yaml tools/pandoc/ipad-tech-header.tex
 	$(RENDER) $(PAYLOAD_MD) $@
+
+$(REGIST_PDF): $(REGIST_MD) tools/pandoc/pandoc-ipad-readable.yaml tools/pandoc/ipad-tech-header.tex
+	$(RENDER) $(REGIST_MD) $@
 
 clean:
 	rm -rf $(BUILD_DIR)

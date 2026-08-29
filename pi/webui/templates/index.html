@@ -64,9 +64,14 @@
                      font-size: 0.9em; padding: 0.45em 0.9em; }
     button.power:hover { background: #fdecea; color: #c0392b; border-color: #c0392b; }
 
-    .power-footer { margin-top: 2em; padding-top: 1em; border-top: 1px solid #eee;
-                    display: flex; gap: 0.5em; justify-content: flex-end; }
-    .power-footer form { margin: 0; }
+    /* Power controls live in the title bar. They used to sit in a footer
+       below the gallery, which put them past 100+ thumbnails on a field
+       tablet - effectively unreachable when you need to shut down. */
+    .titlebar { display: flex; align-items: center; justify-content: space-between;
+                flex-wrap: wrap; gap: 0.75em; margin-bottom: 0.5em; }
+    .titlebar h1 { margin: 0; }
+    .power-controls { display: flex; gap: 0.5em; }
+    .power-controls form { margin: 0; }
 
     .gallery { display: grid;
                grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
@@ -83,7 +88,19 @@
   </style>
 </head>
 <body>
-  <h1>Koenig Wildfire</h1>
+  <div class="titlebar">
+    <h1>Koenig Wildfire</h1>
+    <div class="power-controls">
+      <form action="/system/reboot" method="post"
+            onsubmit="return confirm('Reboot the Pi? It will be unavailable for about a minute.');">
+        <button class="power" type="submit">Reboot Pi</button>
+      </form>
+      <form action="/system/shutdown" method="post"
+            onsubmit="return confirm('Shut the Pi down? You will need to physically unplug and re-plug the power cable to turn it back on.');">
+        <button class="power" type="submit">Shutdown Pi</button>
+      </form>
+    </div>
+  </div>
 
   {% with messages = get_flashed_messages(with_categories=true) %}
     {% if messages %}
@@ -291,16 +308,5 @@
   {% else %}
   <p class="empty">No images yet. Click <strong>Capture</strong> to take the first one.</p>
   {% endif %}
-
-  <div class="power-footer">
-    <form action="/system/reboot" method="post"
-          onsubmit="return confirm('Reboot the Pi? It will be unavailable for about a minute.');">
-      <button class="power" type="submit">Reboot Pi</button>
-    </form>
-    <form action="/system/shutdown" method="post"
-          onsubmit="return confirm('Shut the Pi down? You will need to physically unplug and re-plug the power cable to turn it back on.');">
-      <button class="power" type="submit">Shutdown Pi</button>
-    </form>
-  </div>
 </body>
 </html>

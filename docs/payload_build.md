@@ -259,9 +259,11 @@ taking one before and after every flight day.
 
 Be honest with anyone you hand this to. The following are **not done**:
 
-1. **The narrowband filters are not installed.** The 762 nm (off-line),
-   766 nm and 770 nm (on-line) filters live with Dr. Koenig. They bolt
-   onto the lens housings — no wiring, no electrical change. **Until
+1. **The narrowband filters are not installed.** Ordered 2026-08-29:
+   Thorlabs `FBH750-10`, `FBH770-10`, `FBH780-10` — Ø25 mm, 10 nm FWHM,
+   a bracketing set (770 nm on-line, 750 and 780 nm continuum
+   references). They bolt onto the lens housings — no wiring, no
+   electrical change. **Until
    they are on, every image this payload captures is broadband and the
    K-line ratio math is not being exercised at all.** Filter holder STLs
    are in [`../hardware/stl/`](../hardware/stl/) (`KK_FILTER_HOLDER_MKIII`).
