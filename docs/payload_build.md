@@ -96,8 +96,10 @@ makes the HQ sensor compatible with M12 optics and, in turn, with the
 bolt-on narrowband filters.
 
 **Why this plate and not the better one:** the stock Pi OS
-`camera-mux-4port` device-tree overlay supports IMX477 out of the box.
-It has no `imx296.dtsi` at all. Full reasoning in
+`camera-mux-4port` device-tree overlay supports IMX477 out of the box and
+has no `imx296.dtsi` at all. **We have since written one** — see
+[`../pi/dtoverlay/README.md`](../pi/dtoverlay/README.md) — so the remaining
+blocker is fitting the plate, not software. Original reasoning in
 [`architecture.md`](architecture.md) and
 [`../pi/dtoverlay/README.md`](../pi/dtoverlay/README.md).
 
@@ -116,8 +118,11 @@ Three **IMX296** global-shutter monochrome cameras. On paper this is the
 - **Smaller frames** — roughly 7× less storage per capture, and faster
   settle time when the mux switches channels.
 
-The K-line primer names IMX296 specifically. We are not flying it because
-it does not work through the multiplexer yet — see
+The K-line primer names IMX296 specifically. It could not be used through
+the multiplexer at all until 2026-08-29, when the missing device-tree
+support was written (`pi/dtoverlay/imx296.dtsi`). The overlay now offers
+`camN-imx296` and the plumbing is verified as far as it can be with IMX477
+hardware still fitted. **What remains is physical: fit this plate.** See
 [Next hardware tasks](#next-hardware-tasks).
 
 ## Focus mechanism — the mono plate is better
@@ -277,7 +282,8 @@ Be honest with anyone you hand this to. The following are **not done**:
 3. **The channels are not radiometrically calibrated.** See the section
    above — cam 2 currently runs ~2.5× hot relative to the other two.
 
-4. **IMX296 does not work through the mux.** See below.
+4. **The IMX296 plate is not fitted.** The device-tree support it needed
+   now exists; the swap itself has not been done or tested.
 
 5. **The operator manual is not finalised** (Phase 6). Screenshots and
    the troubleshooting section are still stubs.
@@ -325,12 +331,16 @@ For the incoming capstone team, roughly in order of value:
    calibration step into the workflow. Right now cam 2 reads ~2.5× hot,
    which is enough to invalidate the ratio measurement on its own.
 
-3. **Write `imx296.dtsi` for the mux overlay.** This unlocks the better
-   sensor *and* the better focus plate in one move. Roughly 200 lines of
-   device tree, modelled on the standalone `imx296-overlay.dts` in the
-   rpi-linux tree. After that it's a camera swap plus one line in
-   `/boot/firmware/config.txt`. Details in
-   [`../pi/dtoverlay/README.md`](../pi/dtoverlay/README.md).
+3. **Fit the IMX296 plate and finish the sensor swap.** The device-tree
+   work is **done** (2026-08-29) — `pi/dtoverlay/imx296.dtsi` plus the
+   overlay build now offer `camN-imx296`, and the plumbing is verified as
+   far as it can be without the hardware: the driver binds, resolves its
+   clock and regulators, and reads the sensor ID over i2c. What remains is
+   physical — fit the mono plate, set all three ports to `imx296` in
+   `/boot/firmware/config.txt`, and confirm the modules run at 37.125 MHz
+   INCK (there is a `camN-imx296-clk-freq` override for 54 MHz if not).
+   This unlocks the better sensor *and* the better focus mechanism in one
+   move. Details in [`../pi/dtoverlay/README.md`](../pi/dtoverlay/README.md).
 
 4. **Revise the flight plate to use the monochrome plate's focus
    mechanism** — knurled collar plus locking set screw. See the

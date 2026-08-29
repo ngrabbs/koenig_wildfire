@@ -117,6 +117,7 @@ class Cameras:
             self._picams[ch.port] = p
             self._configured[ch.port] = (default_resolution, 0)
         self._busy = threading.Lock()
+        self._prime()
         # Focus session state
         self._focus_port: Optional[int] = None
         self._focus_output: Optional[_StreamingOutput] = None
@@ -135,6 +136,39 @@ class Cameras:
             transform=_transform_for(rotation),
         )
         p.configure(cfg)
+
+    def _prime(self) -> None:
+        """Run one start/stop on each camera at daemon startup.
+
+        The first camera use after a cold boot is unreliable: the pipeline
+        occasionally comes up with `Failed to queue buffer 0: Broken pipe`,
+        and the capture then blocks forever holding `_busy`. Every later
+        request gets 409 and the operator has no way back except a reboot —
+        in the field, with students who don't have ssh, that is the payload
+        bricked for the session.
+
+        Reproduced twice in five cold boots on 2026-08-29. It is the same
+        family as the focus black-screen-on-first-use quirk, which commit
+        986887b fixed the same way: do the flaky first use up front, at
+        startup, where nobody is waiting on it and a failure is logged
+        rather than hung on.
+
+        Deliberately best-effort. If priming fails the daemon still starts —
+        a camera that can't prime will report its own error on first capture,
+        which is more useful than refusing to boot.
+        """
+        for ch in CHANNELS:
+            p = self._picams[ch.port]
+            try:
+                p.start()
+                p.stop()
+                log.info("primed camera %d", ch.port)
+            except Exception:
+                log.exception("failed to prime camera %d (continuing)", ch.port)
+                try:
+                    p.stop()
+                except Exception:
+                    pass
 
     # ---------- capture ----------
     def _single_burst(

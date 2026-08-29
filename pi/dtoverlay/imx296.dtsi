@@ -1,0 +1,50 @@
+// SPDX-License-Identifier: GPL-2.0-only
+//
+// Fragment that configures a Sony IMX296 behind the camera multiplexer.
+//
+// Upstream rpi-linux ships imx296-overlay.dts for a directly-attached
+// IMX296, but no imx296.dtsi for the camera-mux overlays - which is why
+// IMX296 could not be selected on a mux port. This file fills that gap,
+// following the same shape as the upstream sensor .dtsi files
+// (imx477_378.dtsi, ov9281.dtsi, ...): the including overlay #defines
+// cam_node, cam_endpoint and cam1_clk, then includes this once per port.
+//
+// Three things differ from the other sensors on this mux, and all three
+// are why a copy-paste of imx477_378.dtsi does not work:
+//
+//   1. Clock name is "inck", not "xclk".
+//   2. Supplies are avdd/dvdd/ovdd, not VANA/VDIG/VDDL.
+//   3. One CSI data lane, not two, at a 594 MHz link frequency.
+//
+// The clock rate matters and is not free to choose: drivers/media/i2c/
+// imx296.c accepts exactly two INCK rates, 37.125 MHz and 54 MHz, and
+// rejects anything else at probe. The mux overlay's usual clk_24mhz is
+// therefore unusable here. koenig-mux-4port defaults this to 37.125 MHz
+// and exposes camN-imx296-clk-freq to switch to 54 MHz - see the note on
+// module oscillators in build-koenig-mux-4port.sh.
+
+cam_node: imx296@1a {
+	compatible = "sony,imx296";
+	reg = <0x1a>;
+	status = "disabled";
+
+	clocks = <&cam1_clk>;
+	clock-names = "inck";
+
+	avdd-supply = <&cam1_reg>;	/* 3.3v */
+	dvdd-supply = <&cam_dummy_reg>;	/* 1.8v */
+	ovdd-supply = <&cam_dummy_reg>;	/* 1.2v */
+
+	rotation = <180>;
+	orientation = <2>;
+
+	port {
+		cam_endpoint: endpoint {
+			clock-lanes = <0>;
+			data-lanes = <1>;
+			clock-noncontinuous;
+			link-frequencies =
+				/bits/ 64 <594000000>;
+		};
+	};
+};

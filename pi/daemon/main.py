@@ -40,6 +40,14 @@ LISTEN_PORT = int(os.environ.get("KOENIG_DAEMON_PORT", "8001"))
 
 log = logging.getLogger("koenig.daemon")
 
+# Configure logging here, at import, rather than inside main(). Cameras() is
+# constructed at module level below and primes the hardware in its
+# constructor; with basicConfig still unset at that point, every message it
+# emits — including a failure to prime a camera — went nowhere. Anything that
+# runs before app.run() needs logging already live to be diagnosable.
+logging.basicConfig(level=logging.INFO,
+                    format="%(asctime)s %(name)s %(levelname)s %(message)s")
+
 app = Flask(__name__)
 store = ImageStore(STORE_ROOT)
 settings = SettingsStore(SETTINGS_PATH)
@@ -251,8 +259,6 @@ def system_shutdown():
 
 
 def main():
-    logging.basicConfig(level=logging.INFO,
-                        format="%(asctime)s %(name)s %(levelname)s %(message)s")
     app.run(host=LISTEN_HOST, port=LISTEN_PORT, threaded=True)
 
 
