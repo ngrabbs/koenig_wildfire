@@ -31,7 +31,8 @@ from flask import Flask, jsonify, request, send_file, abort, Response
 
 from .camera import BusyError, Cameras
 from .store import ImageStore
-from ..shared.settings import SettingsStore, set_supported_resolutions
+from ..shared.settings import (SettingsStore, set_supported_resolutions,
+                               supported_resolutions)
 
 STORE_ROOT = os.environ.get("KOENIG_STORE", str(Path.home() / "koenig_images"))
 SETTINGS_PATH = os.environ.get("KOENIG_SETTINGS", str(Path.home() / ".koenig" / "settings.json"))
@@ -55,6 +56,10 @@ cameras = Cameras(default_resolution=settings.resolution())
 # Tell the settings layer what the fitted cameras actually support, so the
 # API validates against real modes rather than one sensor's hardcoded list.
 set_supported_resolutions(cameras.available_sizes())
+# The store was built before the cameras were open, so a stored resolution
+# was validated against the fallback list. Re-read it now that the real
+# modes are known, or a valid stored value gets silently dropped.
+settings.reload()
 
 
 def _run_one_capture_cycle():
@@ -172,7 +177,12 @@ def disk():
 
 @app.get("/settings")
 def get_settings():
-    return jsonify(settings.snapshot())
+    # supported_resolutions comes from the fitted sensor, so the web UI (a
+    # separate process) can render the right options instead of importing a
+    # module constant that only this process updates at startup.
+    snap = settings.snapshot()
+    snap["supported_resolutions"] = [list(r) for r in supported_resolutions()]
+    return jsonify(snap)
 
 
 @app.put("/settings")

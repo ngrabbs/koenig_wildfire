@@ -207,6 +207,20 @@ class SettingsStore:
         self._lock = threading.Lock()
         self._data = self._load_or_default()
 
+    def reload(self) -> None:
+        """Re-read the settings file from disk.
+
+        Needed because the store is constructed before the cameras are open,
+        so a stored resolution is first validated against the fallback list
+        rather than the fitted sensor's real modes. A valid stored value —
+        1456x1088 on an IMX296 — was therefore rejected at load and silently
+        replaced by the default, leaving the in-memory settings disagreeing
+        with the file on disk. The daemon calls this once the sensor modes
+        are known.
+        """
+        with self._lock:
+            self._data = self._load_or_default()
+
     def _load_or_default(self) -> dict:
         if self.path.exists():
             try:

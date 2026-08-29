@@ -72,6 +72,24 @@ def _form_to_controls(form, prefix=""):
     return out
 
 
+def _resolutions_from(current_settings) -> list[tuple[int, int]]:
+    """Resolution options to offer, preferring what the daemon reports.
+
+    The daemon derives these from the fitted sensor. RESOLUTIONS is only a
+    fallback for when the daemon is unreachable: the web UI runs in its own
+    process, so the sensor-derived list set at daemon startup is not visible
+    here. Rendering the static list meant the form posted 4056x3040 back on
+    every save and the daemon rejected it with a 400 - which surfaced as
+    "resolution 4056x3040 not supported" when changing something unrelated
+    like exposure.
+    """
+    if current_settings:
+        reported = current_settings.get("supported_resolutions")
+        if reported:
+            return [tuple(r) for r in reported]
+    return RESOLUTIONS
+
+
 def _split_interval(seconds: int) -> tuple[int, str]:
     """Pick a friendly (value, unit) display for an interval given in seconds."""
     if seconds and seconds % 60 == 0:
@@ -98,7 +116,7 @@ def index():
         control_schema=CONTROL_SCHEMA,
         control_names=CONTROL_NAMES,
         bool_controls=BOOL_CONTROLS,
-        resolutions=RESOLUTIONS,
+        resolutions=_resolutions_from(current_settings),
         rotations_allowed=ROTATIONS_ALLOWED,
         camera_ports=CAMERA_PORTS,
         port_wavelengths=PORT_WAVELENGTH,

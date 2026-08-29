@@ -125,7 +125,10 @@ class Cameras:
             self._configured[ch.port] = None
 
         self._available_sizes = self._read_sensor_sizes()
-        size = self._usable_size(default_resolution)
+        # Quiet: the daemon reloads settings against the real modes straight
+        # after this, so a mismatch now reflects the pre-reload fallback
+        # value, not anything the operator chose.
+        size = self._usable_size(default_resolution, warn=False)
         for ch in CHANNELS:
             self._configure_still(self._picams[ch.port], size, 0)
             self._configured[ch.port] = (size, 0)
@@ -211,7 +214,7 @@ class Cameras:
     def available_sizes(self) -> list[tuple[int, int]]:
         return list(self._available_sizes)
 
-    def _usable_size(self, size: tuple[int, int]) -> tuple[int, int]:
+    def _usable_size(self, size: tuple[int, int], warn: bool = True) -> tuple[int, int]:
         """Clamp a requested size to something this sensor actually has.
 
         A settings.json written for one sensor should not stop the daemon
@@ -221,7 +224,7 @@ class Cameras:
         if not self._available_sizes or tuple(size) in self._available_sizes:
             return size
         fallback = self._available_sizes[0]
-        if self._size_warned != (tuple(size), fallback):
+        if warn and self._size_warned != (tuple(size), fallback):
             log.warning("resolution %dx%d is not a mode this sensor offers; "
                         "using %dx%d instead",
                         size[0], size[1], fallback[0], fallback[1])
