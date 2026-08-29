@@ -68,6 +68,20 @@ RotationFn = Callable[[int], int]
 FOCUS_PREVIEW_SIZE = (1332, 990)
 
 
+def _encode_jpeg(frame, path: Path, quality: int = 90) -> None:
+    """Write a captured array to JPEG.
+
+    Kept separate so the grab loop stays free of encoding work — the point
+    of splitting the two is to keep encode time out of the gap between
+    channels, where it turns into inter-channel misregistration.
+    """
+    from PIL import Image
+    img = Image.fromarray(frame)
+    if img.mode not in ("RGB", "L"):
+        img = img.convert("RGB")
+    img.save(str(path), "JPEG", quality=quality, optimize=True)
+
+
 def _transform_for(rotation: int):
     """Build a libcamera Transform for the given rotation in degrees.
     Only 0 and 180 are supported (hardware hflip/vflip)."""
@@ -98,46 +112,74 @@ class _StreamingOutput(io.BufferedIOBase):
 
 
 class Cameras:
-    """Owns all three Picamera2 handles. Sequential capture across channels.
+    """Sequential capture across the three mux channels.
 
-    The CSI controller is shared across mux ports, so only one camera can
-    be streaming at a time. Capture and focus modes use one shared lock
-    (`_busy`) so they can't run concurrently.
+    **Exactly one Picamera2 instance exists at a time.** This is not an
+    optimisation, it is a correctness requirement of the video-mux. Holding
+    three instances open simultaneously breaks mux routing: libcamera enables
+    one video-mux link when the instances are configured and does not
+    re-negotiate when a different instance starts, so every capture reads
+    whichever link happens to be enabled — while still labelling the frame
+    with the camera we asked for. The result is three identical images
+    carrying three correct-looking per-channel filenames and EXIF paths,
+    which is a silent, very convincing data-corruption bug.
+
+    Measured on the rig with three IMX296 (NCC between channels of one
+    capture):
+
+        three instances open   +0.999  +0.958  +0.965   (all the same frame)
+        one instance at a time -0.281  +0.515  -0.208   (genuinely different)
+
+    So each capture opens the camera, grabs, and closes it again. That costs
+    roughly 50 ms per channel in open+configure, which is the price of the
+    frames actually being what they claim to be.
+
+    The CSI controller is shared across mux ports, so only one camera can be
+    streaming at a time regardless. Capture and focus use one shared lock
+    (`_busy`) so they cannot run concurrently.
     """
 
     def __init__(self, default_resolution: tuple[int, int] = (4056, 3040)):
         from picamera2 import Picamera2  # lazy: dev hosts without picamera2 can still import
         self._Picamera2 = Picamera2
-        self._picams: dict[int, "Picamera2"] = {}
-        # Track (size, rotation) per port so we know when to reconfigure.
-        self._configured: dict[int, Optional[tuple[tuple[int, int], int]]] = {}
         # Per-port record of controls libcamera rejected, so the warning is
         # logged once rather than on every capture.
         self._dropped_controls: dict[int, set[str]] = {}
         self._size_warned: Optional[tuple] = None
         self._available_sizes: list[tuple[int, int]] = []
-
-        # Open every camera first, then ask what modes they have, then
-        # configure. _configure_still clamps against _available_sizes, so it
-        # cannot run until the sensors have been interrogated.
-        for ch in CHANNELS:
-            self._picams[ch.port] = Picamera2(camera_num=ch.port)
-            self._configured[ch.port] = None
+        self._default_resolution = default_resolution
 
         self._available_sizes = self._read_sensor_sizes()
-        # Quiet: the daemon reloads settings against the real modes straight
-        # after this, so a mismatch now reflects the pre-reload fallback
-        # value, not anything the operator chose.
-        size = self._usable_size(default_resolution, warn=False)
-        for ch in CHANNELS:
-            self._configure_still(self._picams[ch.port], size, 0)
-            self._configured[ch.port] = (size, 0)
 
         self._busy = threading.Lock()
+        # Guards the focus session state transition. stop_focus can be called
+        # concurrently by the /focus/stop handler and by the streaming
+        # generator's cleanup when the client disconnects; without this both
+        # would run the teardown and both would release _busy, freeing a lock
+        # a later capture is holding ("release unlocked lock").
+        self._focus_state_lock = threading.Lock()
         self._prime()
-        # Focus session state
+        # Focus session state. The focus camera is the one instance held open
+        # for the duration of a focus session; nothing else may be open then.
+        self._focus_cam = None
         self._focus_port: Optional[int] = None
         self._focus_output: Optional[_StreamingOutput] = None
+
+    # ---------- open / close ----------
+    def _open(self, port: int):
+        """Open and return a Picamera2 for one port. Caller must close it.
+
+        Never hold two of these at once — see the class docstring.
+        """
+        return self._Picamera2(camera_num=port)
+
+    @staticmethod
+    def _close(p) -> None:
+        for step in ("stop_recording", "stop", "close"):
+            try:
+                getattr(p, step)()
+            except Exception:
+                pass
 
     # ---------- configuration helpers ----------
     def _configure_still(self, p, size: tuple[int, int], rotation: int) -> None:
@@ -175,17 +217,19 @@ class Cameras:
         which is more useful than refusing to boot.
         """
         for ch in CHANNELS:
-            p = self._picams[ch.port]
+            p = None
             try:
+                p = self._open(ch.port)
+                self._configure_still(p, self._usable_size(self._default_resolution,
+                                                           warn=False), 0)
                 p.start()
                 p.stop()
                 log.info("primed camera %d", ch.port)
             except Exception:
                 log.exception("failed to prime camera %d (continuing)", ch.port)
-                try:
-                    p.stop()
-                except Exception:
-                    pass
+            finally:
+                if p is not None:
+                    self._close(p)
 
     def _read_sensor_sizes(self) -> list[tuple[int, int]]:
         """Sizes libcamera reports for the fitted cameras, largest first.
@@ -196,8 +240,9 @@ class Cameras:
         settings API answered 400 and the sensor could not be used at all.
         """
         sizes: list[tuple[int, int]] = []
+        p = None
         try:
-            p = self._picams[CHANNELS[0].port]
+            p = self._open(CHANNELS[0].port)
             for mode in p.sensor_modes:
                 size = tuple(int(v) for v in mode["size"])
                 if size not in sizes:
@@ -206,6 +251,9 @@ class Cameras:
             log.exception("could not read sensor modes; "
                           "falling back to the configured resolution list")
             return []
+        finally:
+            if p is not None:
+                self._close(p)
         sizes.sort(key=lambda wh: wh[0] * wh[1], reverse=True)
         log.info("sensor modes available: %s",
                  ", ".join(f"{w}x{h}" for w, h in sizes))
@@ -231,7 +279,7 @@ class Cameras:
             self._size_warned = (tuple(size), fallback)
         return fallback
 
-    def _supported_controls(self, port: int, controls: dict) -> dict:
+    def _supported_controls(self, p, port: int, controls: dict) -> dict:
         """Drop controls this camera doesn't advertise.
 
         Not every sensor exposes every control, and passing an unsupported
@@ -246,7 +294,6 @@ class Cameras:
         file working across sensors, which matters because the shared/
         per-camera settings schema is sensor-agnostic by design.
         """
-        p = self._picams[port]
         try:
             available = set(p.camera_controls)
         except Exception:
@@ -281,45 +328,47 @@ class Cameras:
         window we are trying to shrink. Encoding after the last grab costs the
         same total time but keeps it out of the inter-channel gap.
 
-        `capture_request()` hands back a buffer that stays valid after stop(),
-        so we can defer save() without copying the frame out.
+        The grab MUST copy the frame out, not hold a capture_request() to save
+        later. All three cameras share one CSI receiver, so a request held
+        across another camera's start()/stop() no longer refers to its own
+        frame: every channel ends up saving the last one captured, producing
+        three identical images that still carry correct per-channel filenames
+        and EXIF. capture_array() copies into numpy, which costs a little time
+        but is the only safe option here.
+
         See docs/channel_registration.md.
         """
-        # Phase 1 — grab. Keep this loop as tight as possible.
-        requests: list[tuple[Channel, Path, object]] = []
+        # Phase 1 — grab. One camera open at a time; see the class docstring.
+        grabbed: list[tuple[Channel, Path, "object"]] = []
         try:
             for ch in CHANNELS:
-                p = self._picams[ch.port]
-                desired_size = resolution
                 desired_rot = rotation_for(ch.port) if rotation_for else 0
-                if desired_size is not None:
-                    desired = (desired_size, desired_rot)
-                    if self._configured[ch.port] != desired:
-                        self._configure_still(p, desired_size, desired_rot)
-                        self._configured[ch.port] = desired
-                if controls_for is not None:
-                    wanted = self._supported_controls(ch.port, controls_for(ch.port))
-                    if wanted:
-                        p.set_controls(wanted)
-                p.start()
+                size = self._usable_size(resolution or self._default_resolution)
+                p = self._open(ch.port)
                 try:
-                    req = p.capture_request()
+                    self._configure_still(p, size, desired_rot)
+                    if controls_for is not None:
+                        wanted = self._supported_controls(
+                            p, ch.port, controls_for(ch.port))
+                        if wanted:
+                            p.set_controls(wanted)
+                    p.start()
+                    try:
+                        frame = p.capture_array()
+                    finally:
+                        p.stop()
                 finally:
-                    p.stop()
-                requests.append((ch, path_for(ch), req))
+                    self._close(p)
+                grabbed.append((ch, path_for(ch), frame))
 
             # Phase 2 — encode. Off the inter-channel path.
             results: list[CaptureResult] = []
-            for ch, path, req in requests:
-                req.save("main", str(path))
+            for ch, path, frame in grabbed:
+                _encode_jpeg(frame, path)
                 results.append(CaptureResult(ch.port, ch.wavelength_nm, path))
             return results
         finally:
-            for _, _, req in requests:
-                try:
-                    req.release()
-                except Exception:
-                    log.exception("failed to release capture request")
+            grabbed.clear()
 
     def capture_bursts(
         self,
@@ -367,23 +416,13 @@ class Cameras:
         try:
             from picamera2.encoders import MJPEGEncoder
             from picamera2.outputs import FileOutput
-            p = self._picams[port]
-            # Belt-and-suspenders: ensure the camera is fully stopped before
-            # reconfiguring. A previous focus exit or capture's stop() may
-            # have left transitional state; configure() while not-fully-stopped
-            # produces an encoder that never emits frames (= black screen).
-            try:
-                p.stop_recording()
-            except Exception:
-                pass
-            try:
-                p.stop()
-            except Exception:
-                pass
+            # Open fresh for this session. Nothing else may be open while a
+            # focus stream runs - see the class docstring on mux routing.
+            p = self._open(port)
+            self._focus_cam = p
             self._configure_video(p, FOCUS_PREVIEW_SIZE, rotation)
-            self._configured[port] = None  # force reconfigure back to still after focus
             if controls:
-                wanted = self._supported_controls(port, controls)
+                wanted = self._supported_controls(p, port, controls)
                 if wanted:
                     p.set_controls(wanted)
             # Prime the camera with a throwaway start/stop. Without this, the
@@ -404,16 +443,30 @@ class Cameras:
             self._focus_port = port
             self._focus_output = output
         except Exception:
+            if self._focus_cam is not None:
+                self._close(self._focus_cam)
+                self._focus_cam = None
             self._busy.release()
             raise
 
     def stop_focus(self) -> None:
         """End any active focus session, restore the camera, release the lock.
         Safe to call when no focus is active and safe to call multiple times."""
-        if self._focus_port is None:
+        # Claim the session inside the guard: whichever caller gets here
+        # first takes ownership of the teardown and the single _busy release,
+        # and any concurrent caller returns immediately.
+        with self._focus_state_lock:
+            if self._focus_port is None:
+                return
+            port = self._focus_port
+            p = self._focus_cam
+            self._focus_port = None
+            self._focus_cam = None
+            self._focus_output = None
+
+        if p is None:
+            self._busy.release()
             return
-        port = self._focus_port
-        p = self._picams[port]
         try:
             p.stop_recording()
         except RuntimeError as e:
@@ -427,14 +480,10 @@ class Cameras:
                 pass
         except Exception:
             log.exception("stop_recording on port %d failed", port)
-        # configured_size already set to None — next capture reconfigures still
-        self._focus_port = None
-        self._focus_output = None
-        try:
-            self._busy.release()
-        except RuntimeError:
-            # Lock wasn't held — shouldn't happen, but don't crash.
-            pass
+        # Close it: leaving the focus instance open would keep its video-mux
+        # link enabled and every later capture would read this camera.
+        self._close(p)
+        self._busy.release()
 
     def iter_frames(self, timeout: float = 2.0):
         """Yield raw JPEG bytes from the active focus stream. Stops when
@@ -471,8 +520,6 @@ class Cameras:
     def close(self) -> None:
         self.stop_focus()
         with self._busy:
-            for p in self._picams.values():
-                try:
-                    p.close()
-                except Exception:
-                    pass
+            if self._focus_cam is not None:
+                self._close(self._focus_cam)
+                self._focus_cam = None
