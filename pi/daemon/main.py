@@ -31,7 +31,7 @@ from flask import Flask, jsonify, request, send_file, abort, Response
 
 from .camera import BusyError, Cameras
 from .store import ImageStore
-from ..shared.settings import SettingsStore
+from ..shared.settings import SettingsStore, set_supported_resolutions
 
 STORE_ROOT = os.environ.get("KOENIG_STORE", str(Path.home() / "koenig_images"))
 SETTINGS_PATH = os.environ.get("KOENIG_SETTINGS", str(Path.home() / ".koenig" / "settings.json"))
@@ -52,6 +52,9 @@ app = Flask(__name__)
 store = ImageStore(STORE_ROOT)
 settings = SettingsStore(SETTINGS_PATH)
 cameras = Cameras(default_resolution=settings.resolution())
+# Tell the settings layer what the fitted cameras actually support, so the
+# API validates against real modes rather than one sensor's hardcoded list.
+set_supported_resolutions(cameras.available_sizes())
 
 
 def _run_one_capture_cycle():

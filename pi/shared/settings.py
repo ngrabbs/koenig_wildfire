@@ -45,11 +45,37 @@ CONTROL_SCHEMA: dict[str, dict] = {
 }
 
 # IMX477 still-config sizes we expose. (Width, height) → label.
+# Fallback list, used only until the daemon reports what the cameras
+# actually offer (see set_supported_resolutions). These are the IMX477
+# modes; an IMX296 has exactly one mode, 1456x1088, and none of these are
+# valid for it. Hardcoding this list rejected the IMX296's only resolution
+# with HTTP 400 and made the sensor unusable through the UI.
 RESOLUTIONS: list[tuple[int, int]] = [
     (4056, 3040),   # full sensor
     (2028, 1520),   # 2x2 binned, full FOV, faster, better SNR — default
     (1332, 990),    # crop, fastest, NARROWER field of view
 ]
+
+# Replaced at daemon startup with the modes libcamera reports for the
+# cameras actually fitted. Module-level so _coerce_resolution can see it
+# without threading a reference through every call site.
+_supported_resolutions: list[tuple[int, int]] = list(RESOLUTIONS)
+
+
+def set_supported_resolutions(sizes) -> None:
+    """Tell the settings layer what the fitted cameras actually support.
+
+    Called by the daemon once the cameras are open. Keeps one settings
+    schema working across sensors instead of baking in one sensor's modes.
+    """
+    global _supported_resolutions
+    cleaned = [(int(w), int(h)) for w, h in sizes if int(w) > 0 and int(h) > 0]
+    if cleaned:
+        _supported_resolutions = cleaned
+
+
+def supported_resolutions() -> list[tuple[int, int]]:
+    return list(_supported_resolutions)
 
 # 2028x1520 rather than the full 4056x3040. Two reasons, both from TL-002
 # (see docs/channel_registration.md):
@@ -167,8 +193,9 @@ def _coerce_resolution(value) -> list[int]:
     if len(parts) != 2:
         raise ValueError("resolution must be [width, height]")
     w, h = int(parts[0]), int(parts[1])
-    if (w, h) not in RESOLUTIONS:
-        supported = ", ".join(f"{a}x{b}" for a, b in RESOLUTIONS)
+    allowed = supported_resolutions()
+    if (w, h) not in allowed:
+        supported = ", ".join(f"{a}x{b}" for a, b in allowed)
         raise ValueError(f"resolution {w}x{h} not supported (try {supported})")
     return [w, h]
 

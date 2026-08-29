@@ -111,11 +111,25 @@ class Cameras:
         self._picams: dict[int, "Picamera2"] = {}
         # Track (size, rotation) per port so we know when to reconfigure.
         self._configured: dict[int, Optional[tuple[tuple[int, int], int]]] = {}
+        # Per-port record of controls libcamera rejected, so the warning is
+        # logged once rather than on every capture.
+        self._dropped_controls: dict[int, set[str]] = {}
+        self._size_warned: Optional[tuple] = None
+        self._available_sizes: list[tuple[int, int]] = []
+
+        # Open every camera first, then ask what modes they have, then
+        # configure. _configure_still clamps against _available_sizes, so it
+        # cannot run until the sensors have been interrogated.
         for ch in CHANNELS:
-            p = Picamera2(camera_num=ch.port)
-            self._configure_still(p, default_resolution, 0)
-            self._picams[ch.port] = p
-            self._configured[ch.port] = (default_resolution, 0)
+            self._picams[ch.port] = Picamera2(camera_num=ch.port)
+            self._configured[ch.port] = None
+
+        self._available_sizes = self._read_sensor_sizes()
+        size = self._usable_size(default_resolution)
+        for ch in CHANNELS:
+            self._configure_still(self._picams[ch.port], size, 0)
+            self._configured[ch.port] = (size, 0)
+
         self._busy = threading.Lock()
         self._prime()
         # Focus session state
@@ -125,7 +139,7 @@ class Cameras:
     # ---------- configuration helpers ----------
     def _configure_still(self, p, size: tuple[int, int], rotation: int) -> None:
         cfg = p.create_still_configuration(
-            main={"size": size},
+            main={"size": self._usable_size(size)},
             transform=_transform_for(rotation),
         )
         p.configure(cfg)
@@ -170,6 +184,81 @@ class Cameras:
                 except Exception:
                     pass
 
+    def _read_sensor_sizes(self) -> list[tuple[int, int]]:
+        """Sizes libcamera reports for the fitted cameras, largest first.
+
+        The supported-resolution list used to be hardcoded to the IMX477's
+        modes. That silently assumed one sensor: an IMX296 has exactly one
+        mode, 1456x1088, which the hardcoded list rejected outright, so the
+        settings API answered 400 and the sensor could not be used at all.
+        """
+        sizes: list[tuple[int, int]] = []
+        try:
+            p = self._picams[CHANNELS[0].port]
+            for mode in p.sensor_modes:
+                size = tuple(int(v) for v in mode["size"])
+                if size not in sizes:
+                    sizes.append(size)
+        except Exception:
+            log.exception("could not read sensor modes; "
+                          "falling back to the configured resolution list")
+            return []
+        sizes.sort(key=lambda wh: wh[0] * wh[1], reverse=True)
+        log.info("sensor modes available: %s",
+                 ", ".join(f"{w}x{h}" for w, h in sizes))
+        return sizes
+
+    def available_sizes(self) -> list[tuple[int, int]]:
+        return list(self._available_sizes)
+
+    def _usable_size(self, size: tuple[int, int]) -> tuple[int, int]:
+        """Clamp a requested size to something this sensor actually has.
+
+        A settings.json written for one sensor should not stop the daemon
+        working after a sensor swap. Falls back to the largest available
+        mode and says so, rather than failing the capture.
+        """
+        if not self._available_sizes or tuple(size) in self._available_sizes:
+            return size
+        fallback = self._available_sizes[0]
+        if self._size_warned != (tuple(size), fallback):
+            log.warning("resolution %dx%d is not a mode this sensor offers; "
+                        "using %dx%d instead",
+                        size[0], size[1], fallback[0], fallback[1])
+            self._size_warned = (tuple(size), fallback)
+        return fallback
+
+    def _supported_controls(self, port: int, controls: dict) -> dict:
+        """Drop controls this camera doesn't advertise.
+
+        Not every sensor exposes every control, and passing an unsupported
+        one makes picamera2 raise rather than ignore it, failing the whole
+        capture. The IMX296 is the case that surfaced this: it is a
+        monochrome sensor, so there is no Bayer array, no white balance and
+        no saturation, and libcamera advertises neither AwbEnable nor
+        Saturation. With settings.json carrying the IMX477 control set, every
+        capture died with "Control AwbEnable is not advertised by libcamera".
+
+        Filtering against what the camera actually offers keeps one settings
+        file working across sensors, which matters because the shared/
+        per-camera settings schema is sensor-agnostic by design.
+        """
+        p = self._picams[port]
+        try:
+            available = set(p.camera_controls)
+        except Exception:
+            log.exception("could not read camera_controls for port %d; "
+                          "passing controls through unfiltered", port)
+            return controls
+
+        dropped = {k for k in controls if k not in available}
+        if dropped and self._dropped_controls.get(port) != dropped:
+            log.warning("camera %d does not support %s - ignoring "
+                        "(normal for a mono sensor)",
+                        port, ", ".join(sorted(dropped)))
+            self._dropped_controls[port] = dropped
+        return {k: v for k, v in controls.items() if k in available}
+
     # ---------- capture ----------
     def _single_burst(
         self,
@@ -206,7 +295,9 @@ class Cameras:
                         self._configure_still(p, desired_size, desired_rot)
                         self._configured[ch.port] = desired
                 if controls_for is not None:
-                    p.set_controls(controls_for(ch.port))
+                    wanted = self._supported_controls(ch.port, controls_for(ch.port))
+                    if wanted:
+                        p.set_controls(wanted)
                 p.start()
                 try:
                     req = p.capture_request()
@@ -289,7 +380,9 @@ class Cameras:
             self._configure_video(p, FOCUS_PREVIEW_SIZE, rotation)
             self._configured[port] = None  # force reconfigure back to still after focus
             if controls:
-                p.set_controls(controls)
+                wanted = self._supported_controls(port, controls)
+                if wanted:
+                    p.set_controls(wanted)
             # Prime the camera with a throwaway start/stop. Without this, the
             # first start_recording after daemon boot occasionally fires up
             # the encoder but the IMX477 pipeline never produces frames
