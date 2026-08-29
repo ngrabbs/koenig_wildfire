@@ -1,0 +1,7 @@
+# Ground-station analysis tools (tools/*.py). These run on a laptop, not the
+# Pi — the Pi only needs picamera2 + Flask.
+#
+#   python3 -m venv .venv && . .venv/bin/activate
+#   pip install -r tools/requirements.txt
+numpy>=1.24
+opencv-python-headless>=4.8

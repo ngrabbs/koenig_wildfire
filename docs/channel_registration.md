@@ -258,6 +258,33 @@ Register on **background structure, not the fire**. During a burn the on-line
 channel will show something the reference channels do not — that difference
 *is* the signal, and an aligner allowed to match it away will erase it.
 
+**Implemented** as `tools/register_triplets.py` (2026-08-29). Groups frames
+into triplets by capture-event stem, estimates the shift per pair, warps onto
+a reference channel, crops to the region valid in all three, and writes a
+per-triplet report. `--composite` emits a false-colour RGB QA image: if
+registration worked the edges are grey, and coloured fringing means residual
+misalignment.
+
+Two things that came out of building it, both worth knowing:
+
+- **`cv2.phaseCorrelate`'s own `response` value is not a usable confidence
+  measure on this data.** Event `20260829_120648_759` scores 0.104 while
+  genuinely improving alignment (NCC 0.331 → 0.694), and `20260829_121016_613`
+  scores 0.009 on the best-exposed frames of the whole flight. The tool
+  instead applies the shift and measures normalised cross-correlation over the
+  valid overlap — slower, but it measures the thing we care about rather than
+  a proxy for it. The report prints NCC before and after, so every fit shows
+  its own work.
+
+- **A featureless frame aligns to a confident-looking zero.** Blown-out frames
+  correlate to NCC ~1.0 against each other while carrying no information, so
+  there is a separate gate on gradient energy. Without it the tool reports
+  success on exactly the frames that are worthless.
+
+Run against the TL-002 flight set: **20 registered, 20 low-confidence, 1
+incomplete** of 41 events. The low-confidence half is the clipped data — which
+is the exposure problem above, surfacing again as an inability to register.
+
 ### 3. Operational: capture in a hover
 
 Costs nothing, available immediately, and directly reduces the displacement
