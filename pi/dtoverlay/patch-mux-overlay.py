@@ -117,14 +117,45 @@ def main() -> int:
         )
         dts = sub_once(dts, anchor, addition, f"imx296 node on port {port}")
 
+    # --- 3c. one-lane variant for the CSI receiver ------------------------
+    # fragment@201 hardcodes csi1_ep to data-lanes = <1 2>, and upstream
+    # offers no way to change it. Setting the mux inputs to one lane is not
+    # enough on its own: unicam itself stays configured for two and waits
+    # for a second lane the IMX296 never drives. Numbered 210 so it applies
+    # after 201 and wins.
+    dts = sub_once(
+        dts,
+        "\tfragment@202 {\n\t\ttarget = <&i2c0if>;",
+        "\t/* koenig: 1-lane CSI receiver, activated by camN-imx296 */\n"
+        "\tfragment@210 {\n"
+        "\t\ttarget = <&csi1_ep>;\n"
+        "\t\t__dormant__ {\n"
+        "\t\t\tdata-lanes = <1>;\n"
+        "\t\t};\n"
+        "\t};\n"
+        "\n"
+        "\tfragment@202 {\n\t\ttarget = <&i2c0if>;",
+        "csi1_ep 1-lane fragment",
+    )
+
     # --- 3b. selection overrides -----------------------------------------
     # Mirrors the camN-imx477 pattern: cross-link the sensor endpoint and
     # the mux input, then enable the node.
+    # The IMX296 is a ONE-lane sensor. mux_inN defaults to data-lanes = <1 2>
+    # (fragment@101/103/105/107) with a dormant 1-lane variant
+    # (fragment@100/102/104/106). Without flipping those, the CSI receiver
+    # waits for a second lane that never arrives: the sensor probes fine over
+    # i2c, the media graph negotiates cleanly, and then every capture dies
+    # with "Camera frontend has timed out". Upstream's only 1-lane sensor on
+    # this mux, ov7251, does exactly this. Port N toggles 100+2N / 101+2N.
+    # +210 additionally drops the CSI receiver itself to one lane; without
+    # that, unicam waits for a second lane and the capture still times out.
     overrides = "\n".join(
         f"\t\tcam{p}-imx296 = <&mux_in{p}>, \"remote-endpoint:0=\",<&imx296_{p}_ep>,\n"
         f"\t\t\t      <&imx296_{p}_ep>, \"remote-endpoint:0=\",<&mux_in{p}>,\n"
         f"\t\t\t      <&mux_in{p}>, \"clock-noncontinuous?\",\n"
-        f"\t\t\t      <&imx296_{p}>, \"status=okay\";"
+        f"\t\t\t      <&imx296_{p}>, \"status=okay\",\n"
+        f"\t\t\t      <0>,\"+{100 + 2 * p}-{101 + 2 * p}+210\";"
         for p in range(4)
     )
     clk_overrides = "\n".join(
