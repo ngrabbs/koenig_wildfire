@@ -208,25 +208,41 @@ def _centre_corner_ratio(img: np.ndarray) -> float:
     return float(centre / max(corner, 1e-6))
 
 
-def _radial_structure(img: np.ndarray) -> float:
-    """How much of the frame's shape is NOT radially symmetric, as a percentage.
+def _optical_centre(img: np.ndarray) -> tuple[float, float]:
+    """Locate the optical axis: the brightest point of the heavily blurred frame.
 
-    Real vignetting is a smooth roll-off from the optical axis, so it is
-    almost perfectly radially symmetric. Scene content - clouds, a lit wall,
-    a branch in the corner - is not. Comparing the smoothed frame against its
-    own radial average separates the two without needing to know anything
-    about the optics.
+    It is NOT the frame centre. These are M12 lenses in 3D-printed holders and
+    the axis lands 58-105 px off centre on this payload's three cameras. That
+    is harmless - the gain map is per-pixel and corrects whatever shape the
+    response has - but a symmetry test that assumes a centred axis reads the
+    offset as scene contamination and rejects a perfectly good flat.
+    """
+    sm = cv2.GaussianBlur(img, (0, 0), 0.12 * img.shape[1])
+    cy, cx = np.unravel_index(int(np.argmax(sm)), sm.shape)
+    return float(cx), float(cy)
+
+
+def _radial_structure(img: np.ndarray) -> tuple[float, float]:
+    """Percentage of the frame's shape that is NOT radially symmetric, and how
+    far the optical axis sits from the frame centre.
+
+    Real vignetting falls off smoothly from the optical axis, so it is nearly
+    radially symmetric about that axis. Scene content - cloud, a lit wall, a
+    branch in a corner - is not symmetric about anything. Comparing the
+    smoothed frame against its own radial average separates the two without
+    needing to know anything about the optics.
     """
     h, w = img.shape
+    cx, cy = _optical_centre(img)
     sm = cv2.GaussianBlur(img, (0, 0), 0.05 * w)
     yy, xx = np.mgrid[0:h, 0:w]
-    r = np.sqrt((xx - w / 2.0) ** 2 + (yy - h / 2.0) ** 2)
+    r = np.sqrt((xx - cx) ** 2 + (yy - cy) ** 2)
     nbins = 64
     idx = np.clip((r / r.max() * (nbins - 1)).astype(int), 0, nbins - 1)
     prof = np.bincount(idx.ravel(), sm.ravel(), nbins) / np.maximum(
         np.bincount(idx.ravel(), None, nbins), 1)
-    model = prof[idx]                      # radially symmetric reconstruction
-    return float(np.abs(sm - model).mean() / max(sm.mean(), 1e-6) * 100)
+    resid = float(np.abs(sm - prof[idx]).mean() / max(sm.mean(), 1e-6) * 100)
+    return resid, float(np.hypot(cx - w / 2.0, cy - h / 2.0))
 
 
 def check(flat_dir: Path) -> int:
@@ -237,17 +253,28 @@ def check(flat_dir: Path) -> int:
 
     print("A usable flat is featureless and unclipped. Vignetting is fine and")
     print("expected; scene structure is not, because it gets baked into every")
-    print("corrected frame as a false correction.\n")
-    print(f"{'':<7}{'mean':>7}{'p99':>6}{'clipped':>9}{'centre/corner':>15}{'structure':>11}")
+    print("corrected frame as a false correction.")
+    print()
+    print("DO NOT rest a diffuser against the front element. Measured on this")
+    print("payload, paper touching the lens reported 6-37% MORE vignetting than")
+    print("the same lens sees on a distant scene: a contact diffuser feeds light")
+    print("in at wide angles and exaggerates off-axis falloff. It over-corrects,")
+    print("and since it over-corrects by a different amount per camera it makes")
+    print("the channel-to-channel ratio worse - the one thing that matters.")
+    print("Use a distant uniform source: even overcast, or a lit white panel")
+    print("far enough away to be out of the near field.")
+    print()
+    print(f"{'':<7}{'mean':>7}{'p99':>6}{'clipped':>9}"
+          f"{'centre/corner':>15}{'structure':>11}{'axis off':>10}")
 
     verdicts = []
     for port in sorted(frames):
         img = stack_mean(frames[port])
         clip = float((img >= 254).mean() * 100)
         p99 = float(np.percentile(img, 99))
-        struct = _radial_structure(img)
+        struct, axis_off = _radial_structure(img)
         print(f"  cam{port}{img.mean():8.1f}{p99:6.0f}{clip:8.2f}%"
-              f"{_centre_corner_ratio(img):15.2f}{struct:10.1f}%")
+              f"{_centre_corner_ratio(img):15.2f}{struct:10.1f}%{axis_off:9.0f}px")
         verdicts.append((port, clip, p99, struct))
 
     print()
