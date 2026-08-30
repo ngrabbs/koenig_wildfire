@@ -3,12 +3,17 @@
 
 The K-line measurement is a ratio between channels, so any difference in how
 much light each channel delivers for the same scene is indistinguishable from
-real spectral structure. Measured on this payload, that error is currently
-LARGER than the signal being hunted: channel-to-channel gain differs by 35%
-(IMX296 plate) to 150% (IMX477 plate) from lens irises alone, while a 10 nm
-filter dilutes the potassium line to a modest percentage excess. Correcting
-it is not housekeeping, it decides whether the instrument measures potassium
-or its own optics.
+real spectral structure. A 10 nm filter dilutes the potassium line to a modest
+percentage excess over continuum, so a channel gain error of the same order
+is not a nuisance - it is indistinguishable from the thing being measured.
+
+How large is it here? Measured on the IMX296 plate over an aligned overlap
+region - the only valid way, since the cameras point at slightly different
+scene content - the three channels agree to 2.3%. Earlier figures of 35% and
+150% from this project were measured by comparing whole-frame means across
+cameras framing different parts of a scene, and were mostly scene, not gain.
+The honest position is that the true per-channel gain is unknown until it is
+measured against a uniform target, which is what this tool is for.
 
 This applies the standard correction:
 
@@ -203,6 +208,68 @@ def _centre_corner_ratio(img: np.ndarray) -> float:
     return float(centre / max(corner, 1e-6))
 
 
+def _radial_structure(img: np.ndarray) -> float:
+    """How much of the frame's shape is NOT radially symmetric, as a percentage.
+
+    Real vignetting is a smooth roll-off from the optical axis, so it is
+    almost perfectly radially symmetric. Scene content - clouds, a lit wall,
+    a branch in the corner - is not. Comparing the smoothed frame against its
+    own radial average separates the two without needing to know anything
+    about the optics.
+    """
+    h, w = img.shape
+    sm = cv2.GaussianBlur(img, (0, 0), 0.05 * w)
+    yy, xx = np.mgrid[0:h, 0:w]
+    r = np.sqrt((xx - w / 2.0) ** 2 + (yy - h / 2.0) ** 2)
+    nbins = 64
+    idx = np.clip((r / r.max() * (nbins - 1)).astype(int), 0, nbins - 1)
+    prof = np.bincount(idx.ravel(), sm.ravel(), nbins) / np.maximum(
+        np.bincount(idx.ravel(), None, nbins), 1)
+    model = prof[idx]                      # radially symmetric reconstruction
+    return float(np.abs(sm - model).mean() / max(sm.mean(), 1e-6) * 100)
+
+
+def check(flat_dir: Path) -> int:
+    """Judge whether a candidate flat is usable, before it corrupts anything."""
+    frames = scan(flat_dir)
+    if not frames:
+        sys.exit(f"no capture frames found in {flat_dir}")
+
+    print("A usable flat is featureless and unclipped. Vignetting is fine and")
+    print("expected; scene structure is not, because it gets baked into every")
+    print("corrected frame as a false correction.\n")
+    print(f"{'':<7}{'mean':>7}{'p99':>6}{'clipped':>9}{'centre/corner':>15}{'structure':>11}")
+
+    verdicts = []
+    for port in sorted(frames):
+        img = stack_mean(frames[port])
+        clip = float((img >= 254).mean() * 100)
+        p99 = float(np.percentile(img, 99))
+        struct = _radial_structure(img)
+        print(f"  cam{port}{img.mean():8.1f}{p99:6.0f}{clip:8.2f}%"
+              f"{_centre_corner_ratio(img):15.2f}{struct:10.1f}%")
+        verdicts.append((port, clip, p99, struct))
+
+    print()
+    bad = False
+    for port, clip, p99, struct in verdicts:
+        if clip > 0.1 or p99 >= 250:
+            print(f"  cam{port}: CLIPPED ({clip:.2f}% at 255). A saturated pixel cannot")
+            print(f"          report how much light it received, so the gain derived")
+            print(f"          from it is wrong. Shorten the exposure.")
+            bad = True
+        if struct > 8.0:
+            print(f"  cam{port}: NOT FEATURELESS ({struct:.1f}% of the frame's shape is")
+            print(f"          not radially symmetric). Something in the scene is being")
+            print(f"          mistaken for lens vignetting - cloud, a lit wall, an")
+            print(f"          object at the edge. Use a diffuser or a uniform source.")
+            bad = True
+
+    print("  VERDICT: " + ("NOT USABLE — see above" if bad else
+                           "usable — go ahead and calibrate"))
+    return 1 if bad else 0
+
+
 def apply(image_dir: Path, correction_path: Path, out_dir: Path) -> int:
     data = np.load(correction_path)
     ports = [int(p) for p in data["ports"]]
@@ -257,12 +324,19 @@ def main() -> int:
                    help="directory of dark frames (lens caps on, same exposure)")
     c.add_argument("-o", "--output", type=Path, default=Path("correction.npz"))
 
+    k = sub.add_parser("check", help="judge whether a candidate flat is usable")
+    k.add_argument("flat_dir", type=Path)
+
     a = sub.add_parser("apply", help="apply a correction to science captures")
     a.add_argument("image_dir", type=Path)
     a.add_argument("--correction", type=Path, required=True)
     a.add_argument("-o", "--output", type=Path, required=True)
 
     args = ap.parse_args()
+    if args.mode == "check":
+        if not args.flat_dir.is_dir():
+            sys.exit(f"not a directory: {args.flat_dir}")
+        return check(args.flat_dir)
     if args.mode == "calibrate":
         if not args.flat.is_dir():
             sys.exit(f"not a directory: {args.flat}")
