@@ -128,6 +128,12 @@ def _prepare(img: np.ndarray) -> tuple[np.ndarray, float, float]:
     """
     if img.ndim == 3:
         img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    if img.dtype == np.uint16:
+        # CLAHE handles 16-bit, but the texture threshold below was measured
+        # on an 8-bit scale, so bring 16-bit down to the same units.
+        img = cv2.convertScaleAbs(img, alpha=1.0 / 256.0)
+    elif img.dtype != np.uint8:
+        img = np.clip(img, 0, 255).astype(np.uint8)
     scale = WORK_WIDTH / img.shape[1]
     if scale < 1.0:
         img = cv2.resize(img, None, fx=scale, fy=scale, interpolation=cv2.INTER_AREA)
@@ -220,7 +226,10 @@ def process_triplet(
         return TripletResult(stem, reference, [], "incomplete",
                              f"missing cam{','.join(map(str, missing))}")
 
-    images = {p: cv2.imread(str(frames[p]), cv2.IMREAD_COLOR) for p in ports}
+    # UNCHANGED, not COLOR: flat_field.py emits 16-bit mono, and forcing
+    # 8-bit here would discard the precision that correction just recovered
+    # in the gain-boosted corners.
+    images = {p: cv2.imread(str(frames[p]), cv2.IMREAD_UNCHANGED) for p in ports}
     if any(im is None for im in images.values()):
         return TripletResult(stem, reference, [], "incomplete", "unreadable frame")
 
@@ -259,7 +268,15 @@ def process_triplet(
         if write_composite:
             # False-colour QA image: one channel per RGB plane. If registration
             # worked, edges are grey; coloured fringes mean residual misalignment.
-            planes = [cv2.cvtColor(aligned[p], cv2.COLOR_BGR2GRAY) for p in sorted(aligned)]
+            # Always 8-bit — this is for eyeballing, not for measurement.
+            planes = []
+            for p in sorted(aligned):
+                im = aligned[p]
+                if im.ndim == 3:
+                    im = cv2.cvtColor(im, cv2.COLOR_BGR2GRAY)
+                if im.dtype != np.uint8:
+                    im = cv2.convertScaleAbs(im, alpha=255.0 / max(float(im.max()), 1.0))
+                planes.append(im)
             cv2.imwrite(str(out_dir / f"{stem}_composite.png"),
                         cv2.merge([planes[2], planes[1], planes[0]]))
 
