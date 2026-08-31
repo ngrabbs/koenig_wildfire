@@ -34,12 +34,12 @@ from .store import ImageStore
 from ..shared.settings import (SettingsStore, set_supported_resolutions,
                                supported_resolutions)
 
-STORE_ROOT = os.environ.get("KOENIG_STORE", str(Path.home() / "koenig_images"))
-SETTINGS_PATH = os.environ.get("KOENIG_SETTINGS", str(Path.home() / ".koenig" / "settings.json"))
-LISTEN_HOST = os.environ.get("KOENIG_DAEMON_HOST", "127.0.0.1")
-LISTEN_PORT = int(os.environ.get("KOENIG_DAEMON_PORT", "8001"))
+STORE_ROOT = os.environ.get("PAYLOAD_STORE", str(Path.home() / "payload_images"))
+SETTINGS_PATH = os.environ.get("PAYLOAD_SETTINGS", str(Path.home() / ".payload" / "settings.json"))
+LISTEN_HOST = os.environ.get("PAYLOAD_DAEMON_HOST", "127.0.0.1")
+LISTEN_PORT = int(os.environ.get("PAYLOAD_DAEMON_PORT", "8001"))
 
-log = logging.getLogger("koenig.daemon")
+log = logging.getLogger("payload.daemon")
 
 # Configure logging here, at import, rather than inside main(). Cameras() is
 # constructed at module level below and primes the hardware in its
@@ -79,7 +79,7 @@ scheduler = BackgroundScheduler(daemon=True)
 scheduler.start()
 atexit.register(lambda: scheduler.shutdown(wait=False))
 
-_TIMER_JOB_ID = "koenig-timer"
+_TIMER_JOB_ID = "payload-timer"
 
 
 def _timer_tick():

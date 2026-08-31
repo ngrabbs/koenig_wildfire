@@ -10,7 +10,7 @@ reachable (e.g. you've taken it to a field site with no infrastructure),
 it falls back to running its own WPA2 access point called **satnet**
 (password **cubesat1**) at **192.168.4.1**. The operator's laptop
 joins that network and reaches the UI at
-`http://192.168.4.1:8000` or `http://koenig-pi.local:8000`.
+`http://192.168.4.1:8000` or `http://payload-pi.local:8000`.
 
 ### How it works
 
@@ -40,7 +40,7 @@ Re-runnable; deletes and recreates the satnet profile each time.
 Override the defaults with env vars:
 
 ```bash
-sudo SSID=koenig-field PASSWORD=longerthan8chars AP_IP=10.42.0.1 \
+sudo SSID=payload-field PASSWORD=longerthan8chars AP_IP=10.42.0.1 \
      bash pi/network/install-ap-fallback.sh
 ```
 

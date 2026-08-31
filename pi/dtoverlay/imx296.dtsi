@@ -19,9 +19,11 @@
 // The clock rate matters and is not free to choose: drivers/media/i2c/
 // imx296.c accepts exactly two INCK rates, 37.125 MHz and 54 MHz, and
 // rejects anything else at probe. The mux overlay's usual clk_24mhz is
-// therefore unusable here. koenig-mux-4port defaults this to 37.125 MHz
-// and exposes camN-imx296-clk-freq to switch to 54 MHz - see the note on
-// module oscillators in build-koenig-mux-4port.sh.
+// therefore unusable here. payload-mux-4port defaults this to 54 MHz,
+// which is what the InnoMaker CAM-IMX296RAW's onboard oscillator runs at,
+// and exposes camN-imx296-clk-freq to select 37.125 MHz for a module that
+// needs it - see the note on module oscillators in
+// build-payload-mux-4port.sh.
 
 cam_node: imx296@1a {
 	compatible = "sony,imx296";

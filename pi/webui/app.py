@@ -10,13 +10,13 @@ import urllib.request
 
 from ..shared.settings import CONTROL_SCHEMA, RESOLUTIONS, BURST_COUNT_MAX, ROTATIONS_ALLOWED
 
-DAEMON_URL = os.environ.get("KOENIG_DAEMON_URL", "http://127.0.0.1:8001")
-LISTEN_HOST = os.environ.get("KOENIG_WEBUI_HOST", "0.0.0.0")
-LISTEN_PORT = int(os.environ.get("KOENIG_WEBUI_PORT", "8000"))
+DAEMON_URL = os.environ.get("PAYLOAD_DAEMON_URL", "http://127.0.0.1:8001")
+LISTEN_HOST = os.environ.get("PAYLOAD_WEBUI_HOST", "0.0.0.0")
+LISTEN_PORT = int(os.environ.get("PAYLOAD_WEBUI_PORT", "8000"))
 
 app = Flask(__name__)
 # flash() needs a secret. UI is single-Pi local-network only, fixed value is fine.
-app.secret_key = os.environ.get("KOENIG_WEBUI_SECRET", "koenig-wildfire-ui")
+app.secret_key = os.environ.get("PAYLOAD_WEBUI_SECRET", "payload-ui")
 
 CAMERA_PORTS = [0, 1, 2]
 CONTROL_NAMES = list(CONTROL_SCHEMA.keys())

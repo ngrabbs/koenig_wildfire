@@ -1,5 +1,5 @@
 ---
-title: "Koenig Wildfire Payload — Operator Manual"
+title: "Operator Manual"
 subtitle: "Cubesat@MSU"
 author: "Nick Grabbs"
 date: "Version 1.0 — 31 August 2026 · for payload v0.3"
@@ -7,7 +7,7 @@ date: "Version 1.0 — 31 August 2026 · for payload v0.3"
 
 # About this manual
 
-This is the user-facing guide for operating the Koenig Wildfire camera
+This is the user-facing guide for operating the the payload camera
 payload from a laptop. It assumes:
 
 - You have the assembled payload (Raspberry Pi 4 + Arducam multiplexer
@@ -46,9 +46,9 @@ PDF tells you when it was built).
      is "the Pi"; you won't have internet on your laptop while
      joined to it.
 3. **Open your browser**:
-   - In the lab: `http://koenig-pi.local:8000` (or the Pi's IP).
+   - In the lab: `http://payload-pi.local:8000` (or the Pi's IP).
    - In the field on satnet: `http://192.168.4.1:8000` (or
-     `http://koenig-pi.local:8000`).
+     `http://payload-pi.local:8000`).
 4. **Click Capture.** Three pictures appear in the gallery, one per
    camera (you can tell them apart by the `cam0_762nm`, `cam1_766nm`,
    `cam2_770nm` suffix in each filename). The first burst takes ~8
@@ -282,7 +282,7 @@ up in your wifi list:
 
 - **In the lab:** make sure your laptop and the Pi are on the same
   wifi network. Try the Pi's IP address (`http://<pi-ip>:8000`)
-  instead of `koenig-pi.local` — some networks block mDNS.
+  instead of `payload-pi.local` — some networks block mDNS.
 - **In the field on satnet:** confirm your laptop is connected to the
   `satnet` wifi (not your normal home/phone wifi). The URL is
   `http://192.168.4.1:8000`.

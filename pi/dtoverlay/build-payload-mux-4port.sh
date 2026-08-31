@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# build-koenig-mux-4port.sh — build our custom multi-camera dtoverlay.
+# build-payload-mux-4port.sh — build our custom multi-camera dtoverlay.
 #
 # Builds from vendored upstream SOURCE (upstream/), not by decompiling the
 # shipped .dtbo. The old approach patched a decompiled binary, which was fine
@@ -23,11 +23,11 @@
 #      it, and the patch script wires it into all four ports.
 #
 # Usage, on the Pi:
-#   sudo bash pi/dtoverlay/build-koenig-mux-4port.sh
+#   sudo bash pi/dtoverlay/build-payload-mux-4port.sh
 #
 # Then in /boot/firmware/config.txt, one of:
-#   dtoverlay=koenig-mux-4port,cam0-imx477,cam1-imx477,cam2-imx477
-#   dtoverlay=koenig-mux-4port,cam0-imx296,cam1-imx296,cam2-imx296
+#   dtoverlay=payload-mux-4port,cam0-imx477,cam1-imx477,cam2-imx477
+#   dtoverlay=payload-mux-4port,cam0-imx296,cam1-imx296,cam2-imx296
 #
 # Re-run after a Pi OS update that replaces the stock overlays, and refresh
 # upstream/ from rpi-linux if the kernel has moved on (see upstream/README.md).
@@ -49,7 +49,7 @@
 #     Those are the ONLY two rates drivers/media/i2c/imx296.c accepts; it
 #     rejects anything else at probe. The mux's usual clk_24mhz is unusable.
 #     If probe fails with a clock complaint, try 54 MHz:
-#         dtoverlay=koenig-mux-4port,cam0-imx296,...,cam0-imx296-clk-freq=54000000
+#         dtoverlay=payload-mux-4port,cam0-imx296,...,cam0-imx296-clk-freq=54000000
 #   - Whether the single CSI data lane negotiates correctly through the mux.
 #
 # DO NOT MIX SENSOR TYPES. If any configured port fails to probe, the whole
@@ -68,7 +68,7 @@ fi
 
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 UPSTREAM="$HERE/upstream"
-OUT="/boot/firmware/overlays/koenig-mux-4port.dtbo"
+OUT="/boot/firmware/overlays/payload-mux-4port.dtbo"
 
 for tool in dtc cpp python3; do
   command -v "$tool" >/dev/null || {
@@ -94,17 +94,17 @@ cp "$HERE/imx296.dtsi" "$WORK/"
 echo "Patching upstream overlay (i2c redirect + IMX296)"
 python3 "$HERE/patch-mux-overlay.py" \
   --src "$WORK/camera-mux-4port-overlay.dts" \
-  -o "$WORK/koenig-mux-4port-overlay.dts"
+  -o "$WORK/payload-mux-4port-overlay.dts"
 
 echo "Preprocessing"
 ( cd "$WORK" && cpp -nostdinc -I. -undef -x assembler-with-cpp \
-    koenig-mux-4port-overlay.dts -o preprocessed.dts )
+    payload-mux-4port-overlay.dts -o preprocessed.dts )
 
 # The duplicate unit-address warnings are expected and also present when
 # building upstream unmodified: every sensor the mux supports is declared on
 # each port at its own i2c address, and all but the selected one are disabled.
 echo "Compiling"
-( cd "$WORK" && dtc -@ -H epapr -I dts -O dtb -o koenig-mux-4port.dtbo \
+( cd "$WORK" && dtc -@ -H epapr -I dts -O dtb -o payload-mux-4port.dtbo \
     preprocessed.dts 2> dtc.log ) || { cat "$WORK/dtc.log" >&2; exit 1; }
 
 if grep -v -E "Warning \((unit_address_vs_reg|unique_unit_address)\)" "$WORK/dtc.log" \
@@ -119,13 +119,13 @@ if [[ -f "$OUT" ]]; then
   echo "Backed up existing overlay -> $BAK"
 fi
 
-install -o root -g root -m 755 "$WORK/koenig-mux-4port.dtbo" "$OUT"
+install -o root -g root -m 755 "$WORK/payload-mux-4port.dtbo" "$OUT"
 echo "Built $(stat -c '%s' "$OUT") bytes -> $OUT"
 echo
 echo "Set the sensor in /boot/firmware/config.txt — ALL THREE PORTS THE SAME:"
 echo
-echo "    dtoverlay=koenig-mux-4port,cam0-imx477,cam1-imx477,cam2-imx477"
+echo "    dtoverlay=payload-mux-4port,cam0-imx477,cam1-imx477,cam2-imx477"
 echo "  or"
-echo "    dtoverlay=koenig-mux-4port,cam0-imx296,cam1-imx296,cam2-imx296"
+echo "    dtoverlay=payload-mux-4port,cam0-imx296,cam1-imx296,cam2-imx296"
 echo
 echo "Then: sudo reboot && rpicam-hello --list-cameras"

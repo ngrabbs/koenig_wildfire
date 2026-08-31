@@ -1,6 +1,6 @@
 """Camera settings store.
 
-JSON file at $KOENIG_SETTINGS (default ~/.koenig/settings.json).
+JSON file at $PAYLOAD_SETTINGS (default ~/.payload/settings.json).
 Curated subset of picamera2 controls — the eight the operator actually
 tunes — plus a shared/per-camera advanced-mode switch.
 

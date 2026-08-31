@@ -11,7 +11,7 @@
 #   - When no other wifi can be brought up, NM falls back to satnet,
 #     putting wlan0 into AP mode. The operator's laptop joins 'satnet'
 #     (password 'cubesat1' by default) and reaches the Pi at
-#     http://192.168.4.1:8000 (or http://koenig-pi.local:8000).
+#     http://192.168.4.1:8000 (or http://payload-pi.local:8000).
 #
 # Re-runnable: idempotent — deletes any existing 'satnet' profile and
 # recreates from scratch.
@@ -20,7 +20,7 @@
 #   sudo bash pi/network/install-ap-fallback.sh
 #
 # Override the defaults via env:
-#   sudo SSID=koenig PASSWORD=longerthan8chars IFACE=wlan0 \
+#   sudo SSID=my-ap PASSWORD=longerthan8chars IFACE=wlan0 \
 #        bash pi/network/install-ap-fallback.sh
 
 set -euo pipefail

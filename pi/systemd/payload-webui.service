@@ -1,7 +1,7 @@
 [Unit]
-Description=Koenig Wildfire web UI
-After=network.target koenig-daemon.service
-Requires=koenig-daemon.service
+Description=Narrowband imaging payload - web interface
+After=network.target payload-daemon.service
+Requires=payload-daemon.service
 
 [Service]
 Type=simple

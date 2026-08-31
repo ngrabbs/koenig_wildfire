@@ -1,5 +1,5 @@
 [Unit]
-Description=Koenig Wildfire capture daemon
+Description=Narrowband imaging payload - capture daemon
 After=network.target
 
 [Service]

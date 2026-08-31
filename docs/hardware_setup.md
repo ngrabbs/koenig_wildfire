@@ -1,5 +1,5 @@
 ---
-title: "Koenig Wildfire — Hardware Setup"
+title: "Hardware Setup"
 subtitle: "First-boot Pi configuration, wiring, and bring-up checks"
 date: "Version 1.0 — 31 August 2026 · for payload v0.3"
 ---
@@ -11,7 +11,7 @@ end you should have a Pi that:
 
 - Boots Raspberry Pi OS (Bookworm).
 - Sees all three IMX296 cameras through the Arducam mux.
-- Has the koenig-daemon and koenig-webui services running on boot.
+- Has the payload-daemon and payload-webui services running on boot.
 - Joins your wifi if known, falls back to AP mode if not.
 
 If the payload is already built and you just want to use it, you want
@@ -52,7 +52,7 @@ on the current build.
 
 1. **Flash the SD card** with Raspberry Pi Imager. In the imager's
    advanced settings:
-   - Hostname: `koenig-pi`
+   - Hostname: `payload-pi`
    - Enable SSH (use public-key auth — paste the key from whoever's
      going to develop against the Pi)
    - Configure your wifi network and country
@@ -60,7 +60,7 @@ on the current build.
 2. **First boot.** Plug in monitor + keyboard, or SSH in from your
    laptop:
    ```bash
-   ssh pi@koenig-pi.local
+   ssh pi@payload-pi.local
    ```
 3. **System packages.** SSH'd in, run:
    ```bash
@@ -143,13 +143,13 @@ switch to the GPIO-header i2c bus (i2c-1)**, while stock
 failed` and zero cameras.
 
 We ship a small patch script in the repo that produces
-`koenig-mux-4port.dtbo` from the stock overlay. Run it once after
+`payload-mux-4port.dtbo` from the stock overlay. Run it once after
 first boot, and re-run it after any Pi OS upgrade that might replace
 the stock overlay:
 
 ```bash
 cd ~/code/koenig_wildfire
-sudo bash pi/dtoverlay/build-koenig-mux-4port.sh
+sudo bash pi/dtoverlay/build-payload-mux-4port.sh
 ```
 
 Then `/boot/firmware/config.txt` needs:
@@ -163,7 +163,7 @@ camera_auto_detect=0
 # configured port fails to probe, the whole video-mux graph fails to
 # register and libcamera reports "No cameras available" - including
 # the ports that probed fine.
-dtoverlay=koenig-mux-4port,cam0-imx296,cam1-imx296,cam2-imx296
+dtoverlay=payload-mux-4port,cam0-imx296,cam1-imx296,cam2-imx296
 
 # i2c on the GPIO header (where the mux actually lives)
 dtparam=i2c_arm=on
@@ -236,11 +236,11 @@ them on boot, starts both services, and prints the URLs to browse to.
 Verify everything came up:
 
 ```bash
-systemctl status koenig-daemon koenig-webui
-journalctl -u koenig-daemon -u koenig-webui -n 50 --no-pager
+systemctl status payload-daemon payload-webui
+journalctl -u payload-daemon -u payload-webui -n 50 --no-pager
 ```
 
-Then open `http://koenig-pi.local:8000` from a laptop on the same
+Then open `http://payload-pi.local:8000` from a laptop on the same
 network, or via its own `satnet` access point at
 `http://192.168.4.1:8000` when no known wifi is present.
 
@@ -249,7 +249,7 @@ network, or via its own `satnet` access point at
 ```bash
 cd ~/code/koenig_wildfire
 git pull
-sudo systemctl restart koenig-daemon koenig-webui
+sudo systemctl restart payload-daemon payload-webui
 ```
 
 # Wifi configuration (AP fallback)
@@ -275,7 +275,7 @@ profile can be brought up.
 Override the defaults via env:
 
 ```bash
-sudo SSID=koenig-field PASSWORD=longerthan8chars AP_IP=10.42.0.1 \
+sudo SSID=my-ap PASSWORD=longerthan8chars AP_IP=10.42.0.1 \
      bash pi/network/install-ap-fallback.sh
 ```
 

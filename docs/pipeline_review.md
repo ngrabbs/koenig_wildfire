@@ -1,5 +1,5 @@
 ---
-title: "Koenig Wildfire — Payload and Processing Review"
+title: "Payload and Processing Review"
 subtitle: "What the instrument does today, stage by stage, with worked examples"
 date: "2026-08-30"
 ---

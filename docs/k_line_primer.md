@@ -1,9 +1,9 @@
-# K-Line Wildfire Detection — Team Primer
+# K-Line Wildfire Detection — Primer
 
 ## Purpose
 
-This is a short, undergraduate-friendly explanation of *why* the Koenig
-Wildfire payload uses three narrowband NIR filters at 750 / 770 / 780 nm to
+This is a short, undergraduate-friendly explanation of *why* this payload
+uses three narrowband NIR filters at 750 / 770 / 780 nm to
 detect wildfires from orbit. Read this before working on the payload
 optics, the image-processing pipeline, or the ML side. It is not a
 literature review — it's the minimum physics you need to talk

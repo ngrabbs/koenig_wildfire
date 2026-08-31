@@ -3,7 +3,7 @@
 Custom Raspberry Pi device-tree overlays that aren't available stock on
 Pi OS, or that need patching to match our hardware.
 
-## koenig-mux-4port
+## payload-mux-4port
 
 Wraps the stock `camera-mux-4port.dtbo` with one critical fix: redirect
 the PCA9544 I²C switch's parent bus from the dedicated camera/display
@@ -24,15 +24,15 @@ and zero cameras come up.
 On the Pi:
 
 ```bash
-sudo bash pi/dtoverlay/build-koenig-mux-4port.sh
+sudo bash pi/dtoverlay/build-payload-mux-4port.sh
 ```
 
 This decompiles the stock `.dtbo`, applies the one-line patch, and
-recompiles to `/boot/firmware/overlays/koenig-mux-4port.dtbo`. Then
+recompiles to `/boot/firmware/overlays/payload-mux-4port.dtbo`. Then
 edit `/boot/firmware/config.txt`:
 
 ```
-dtoverlay=koenig-mux-4port,cam0-imx477,cam1-imx477,cam2-imx477
+dtoverlay=payload-mux-4port,cam0-imx477,cam1-imx477,cam2-imx477
 ```
 
 and reboot.
@@ -60,7 +60,7 @@ OV9281, IMX290, and Arducam-64MP. Selected per port via flag params
 Select it the same way as any other sensor:
 
 ```
-dtoverlay=koenig-mux-4port,cam0-imx296,cam1-imx296,cam2-imx296
+dtoverlay=payload-mux-4port,cam0-imx296,cam1-imx296,cam2-imx296
 ```
 
 Three things differ from the other sensors on this mux, and they are why
@@ -92,7 +92,7 @@ a long time before the rate turned out to be it. If a future module wants
 37.125 MHz instead:
 
 ```
-dtoverlay=koenig-mux-4port,cam0-imx296,...,cam0-imx296-clk-freq=37125000
+dtoverlay=payload-mux-4port,cam0-imx296,...,cam0-imx296-clk-freq=37125000
 ```
 
 **Host XCLK is not needed.** The mux overlay leaves the Pi's `cam0_clk` /

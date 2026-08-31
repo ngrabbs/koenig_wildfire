@@ -1,5 +1,5 @@
 ---
-title: "Koenig Wildfire — Three-Channel Registration"
+title: "Three-Channel Registration"
 subtitle: "Why the channels don't line up, what we measured, and what we're doing about it"
 date: "2026-08-29 — findings from flight test TL-002"
 ---
@@ -254,7 +254,7 @@ remaining cost is the ~135 ms/channel pipeline fill, which we are not
 attacking yet (see the table below).
 
 > **Deployment note.** `DEFAULT_RESOLUTION` only applies to a fresh
-> install — an existing `~/.koenig/settings.json` keeps whatever it already
+> install — an existing `~/.payload/settings.json` keeps whatever it already
 > stored. The rig at `192.168.1.46` has been switched to 2028 × 1520
 > explicitly. Any other unit needs the same change, from the settings page
 > or by deleting the stored resolution key.

@@ -25,7 +25,7 @@ import logging
 import threading
 
 
-log = logging.getLogger("koenig.cameras")
+log = logging.getLogger("payload.cameras")
 
 
 class BusyError(RuntimeError):

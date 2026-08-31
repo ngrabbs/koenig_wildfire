@@ -23,7 +23,7 @@
 #   - internet access (for mermaid.ink)
 #
 # Environment:
-#   KOENIG_PDF_MAX_PX  Longest edge, in pixels, that a photo is downscaled to
+#   PAYLOAD_PDF_MAX_PX  Longest edge, in pixels, that a photo is downscaled to
 #                      before embedding (default 1600; set 0 to disable).
 #                      Full-resolution phone photos make a 24 MB PDF; 1600 px
 #                      is well past what 300 dpi print needs and lands ~2 MB.
@@ -106,7 +106,7 @@ INPUT_DIR="$(cd "$(dirname "$INPUT")" && pwd)"
 
 # Downscale oversized photos into $WORK so the PDF stays a sane size.
 # Originals on disk are never touched.
-MAX_PX="${KOENIG_PDF_MAX_PX:-1600}"
+MAX_PX="${PAYLOAD_PDF_MAX_PX:-1600}"
 
 cat > "$WORK/downscale.py" <<'PYEOF2'
 import os, re, sys

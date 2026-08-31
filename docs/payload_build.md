@@ -1,12 +1,12 @@
 ---
-title: "Koenig Wildfire — Payload Build"
+title: "Payload Build"
 subtitle: "The physical stack: plates, cameras, optics, power, and what's still missing"
 date: "2026-08-28 — as-flown build"
 ---
 
 # What this document is
 
-This is the **physical** description of the Koenig Wildfire payload: what
+This is the **physical** description of this payload: what
 the parts are, how they stack, why they're arranged that way, and what is
 still unfinished.
 
@@ -125,7 +125,7 @@ fitted and working** — all three modules enumerate, capture through the web
 UI, and stream in focus mode. Set with:
 
 ```
-dtoverlay=koenig-mux-4port,cam0-imx296,cam1-imx296,cam2-imx296
+dtoverlay=payload-mux-4port,cam0-imx296,cam1-imx296,cam2-imx296
 ```
 
 The modules are InnoMaker **CAM-IMX296RAW**, self-clocked from an onboard
@@ -185,7 +185,7 @@ the runtime figure is not. Someone should time an actual discharge.
 
 # As-configured capture settings
 
-Read off the live rig (`~/.koenig/settings.json`) on 2026-08-28:
+Read off the live rig (`~/.payload/settings.json`) on 2026-08-28:
 
 | Setting | Value | Why |
 |---|---|---|
@@ -202,7 +202,7 @@ Auto-exposure and auto-white-balance are **deliberately off**. If either
 were on, each camera would pick its own exposure for the same scene and
 the channel ratio would be meaningless. Do not turn them on.
 
-Captures land in `~/koenig_images/` on the Pi, named
+Captures land in `~/payload_images/` on the Pi, named
 `YYYYMMDD_HHMMSS_mmm_camN_WWWnm.jpg`.
 
 > **The wavelength in the filename is a label, not a measurement.**

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Turn upstream's camera-mux-4port overlay into koenig-mux-4port.
+"""Turn upstream's camera-mux-4port overlay into payload-mux-4port.
 
 Reads upstream/camera-mux-4port-overlay.dts, applies three changes, and
 writes a build-ready .dts. Every edit is anchored on an exact string and
@@ -62,7 +62,7 @@ def main() -> int:
         dts,
         "\ti2c_frag: fragment@200 {\n\t\ttarget = <&i2c_csi_dsi>;",
         "\ti2c_frag: fragment@200 {\n"
-        "\t\t/* koenig: Arducam Multi Camera Adapter v2.2 (B0120) wires the\n"
+        "\t\t/* local: Arducam Multi Camera Adapter v2.2 (B0120) wires the\n"
         "\t\t * PCA954x to the GPIO header i2c (i2c-1), not the camera i2c\n"
         "\t\t * (i2c-10) that upstream assumes. */\n"
         "\t\ttarget = <&i2c_arm>;",
@@ -108,7 +108,7 @@ def main() -> int:
         addition = (
             anchor
             + f"\n"
-            f"\t\t\t\t\t/* koenig: IMX296 - not shipped upstream for the mux */\n"
+            f"\t\t\t\t\t/* local: IMX296 - not shipped upstream for the mux */\n"
             f"\t\t\t\t\t#define cam_node imx296_{port}\n"
             f"\t\t\t\t\t#define cam_endpoint imx296_{port}_ep\n"
             f"\t\t\t\t\t#define cam1_clk clk_imx296\n"
@@ -128,7 +128,7 @@ def main() -> int:
     dts = sub_once(
         dts,
         "\tfragment@202 {\n\t\ttarget = <&i2c0if>;",
-        "\t/* koenig: 1-lane CSI receiver, activated by camN-imx296 */\n"
+        "\t/* local: 1-lane CSI receiver, activated by camN-imx296 */\n"
         "\tfragment@210 {\n"
         "\t\ttarget = <&csi1_ep>;\n"
         "\t\t__dormant__ {\n"
@@ -170,7 +170,7 @@ def main() -> int:
     dts = sub_once(
         dts,
         "\t\tcam0-imx290-clk-freq = <&clk_imx290>,\"clock-frequency:0\",",
-        "\t\t/* koenig: IMX296 selection + INCK rate */\n"
+        "\t\t/* local: IMX296 selection + INCK rate */\n"
         + overrides + "\n\n"
         + clk_overrides + "\n\n"
         "\t\tcam0-imx290-clk-freq = <&clk_imx290>,\"clock-frequency:0\",",

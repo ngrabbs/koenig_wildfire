@@ -16,7 +16,7 @@ docs/channel_registration.md for the measurements behind that choice.
 Usage:
     tools/register_triplets.py IMAGE_DIR [-o OUTPUT_DIR] [options]
 
-    tools/register_triplets.py ~/koenig_images -o ./aligned
+    tools/register_triplets.py ~/payload_images -o ./aligned
     tools/register_triplets.py ./flight_data -o ./aligned --composite
     tools/register_triplets.py ./flight_data --report-only
 

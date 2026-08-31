@@ -20,10 +20,10 @@ python3 -m pi.daemon.main
 python3 -m pi.webui.app
 ```
 
-Then browse to `http://koenig-pi.local:8000` (or the Pi's IP).
+Then browse to `http://payload-pi.local:8000` (or the Pi's IP).
 
-Images land in `~/koenig_images/` by default. Override with the
-`KOENIG_STORE` env var if you want them elsewhere.
+Images land in `~/payload_images/` by default. Override with the
+`PAYLOAD_STORE` env var if you want them elsewhere.
 
 ## Running as systemd services
 
@@ -36,20 +36,20 @@ boot, and starts them. The script prints a status block and the URL to
 browse to. Live logs:
 
 ```bash
-journalctl -u koenig-daemon -u koenig-webui -f
+journalctl -u payload-daemon -u payload-webui -f
 ```
 
 To stop:
 
 ```bash
-sudo systemctl stop koenig-daemon koenig-webui
+sudo systemctl stop payload-daemon payload-webui
 ```
 
 To uninstall:
 
 ```bash
-sudo systemctl disable --now koenig-daemon koenig-webui
-sudo rm /etc/systemd/system/koenig-{daemon,webui}.service
+sudo systemctl disable --now payload-daemon payload-webui
+sudo rm /etc/systemd/system/payload-{daemon,webui}.service
 sudo systemctl daemon-reload
 ```
 
@@ -58,16 +58,16 @@ sudo systemctl daemon-reload
 ```bash
 cd ~/code/koenig_wildfire
 git pull
-sudo systemctl restart koenig-daemon koenig-webui
+sudo systemctl restart payload-daemon payload-webui
 ```
 
 ## Environment variables
 
 | Var | Default | Effect |
 |---|---|---|
-| `KOENIG_STORE`        | `~/koenig_images`       | Image storage directory. |
-| `KOENIG_DAEMON_HOST`  | `127.0.0.1`             | Daemon bind address. |
-| `KOENIG_DAEMON_PORT`  | `8001`                  | Daemon port. |
-| `KOENIG_DAEMON_URL`   | `http://127.0.0.1:8001` | UI's view of the daemon. |
-| `KOENIG_WEBUI_HOST`   | `0.0.0.0`               | UI bind address. |
-| `KOENIG_WEBUI_PORT`   | `8000`                  | UI port. |
+| `PAYLOAD_STORE`        | `~/payload_images`       | Image storage directory. |
+| `PAYLOAD_DAEMON_HOST`  | `127.0.0.1`             | Daemon bind address. |
+| `PAYLOAD_DAEMON_PORT`  | `8001`                  | Daemon port. |
+| `PAYLOAD_DAEMON_URL`   | `http://127.0.0.1:8001` | UI's view of the daemon. |
+| `PAYLOAD_WEBUI_HOST`   | `0.0.0.0`               | UI bind address. |
+| `PAYLOAD_WEBUI_PORT`   | `8000`                  | UI port. |

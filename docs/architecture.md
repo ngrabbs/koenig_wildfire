@@ -1,5 +1,5 @@
 ---
-title: "Koenig Wildfire — System Architecture"
+title: "System Architecture"
 subtitle: "Design and rationale for the Pi 4 / mux / 3-camera build"
 date: "Design document — updated 31 August 2026"
 ---
@@ -29,11 +29,11 @@ flowchart LR
     Browser[Web Browser]
   end
 
-  subgraph Pi["Raspberry Pi 4 (koenig-pi)"]
+  subgraph Pi["Raspberry Pi 4 (payload-pi)"]
     UI["Flask Web UI<br/>:8000"]
     Daemon["Capture Daemon<br/>:8001<br/>APScheduler"]
     Settings[("settings.json")]
-    Store[("USB SSD<br/>/var/koenig/images")]
+    Store[("USB SSD<br/>/var/payload/images")]
     Mux["Arducam Mux v2.2<br/>I²C + GPIO select"]
   end
 
@@ -180,7 +180,7 @@ A 20-shot burst × 3 cameras × ~1 MB per IMX296 monochrome RAW ≈ 60 MB.
 Timer mode at one burst per second fills a 64 GB SD card in roughly
 fifteen minutes of running. Two mitigations:
 
-- The recommended deployment is a USB SSD mounted at `/var/koenig/images`.
+- The recommended deployment is a USB SSD mounted at `/var/payload/images`.
 - The UI shows a live disk-usage bar. Settings include a **"Keep most
   recent N captures"** auto-prune that the daemon enforces.
 
@@ -209,7 +209,7 @@ the UI surfaces a "view logs" tail for diagnostics.
 | 0 | Savepoint + reorganise | **done** — Tag `v0.2-his-final-snapshot`, legacy/ archive, new skeleton, single commit. |
 | 1 | Docs scaffold | **done** — This document, operator manual stub, hardware setup stub, `make pdf` toolchain, end-to-end PDF build verified. |
 | 2 | **done** — Single-camera capture spike | One IMX296 directly on the Pi, no mux. Capture button + image gallery + delete. Re-creates the old `image_dashboard/` functionality on the new stack. |
-| 3 | **done** — Add the mux | Custom `koenig-mux-4port` dtoverlay (stock overlay patched for i2c-1 routing). Sequential three-channel burst via Picamera2 + kernel video-mux. Three IMX477s through Arducam v2.2 HAT. |
+| 3 | **done** — Add the mux | Custom `payload-mux-4port` dtoverlay (stock overlay patched for i2c-1 routing). Sequential three-channel burst via Picamera2 + kernel video-mux. Three IMX477s through Arducam v2.2 HAT. |
 | 4 | Settings + burst + timer | **4a done** — `settings.json` schema, shared-default form, Advanced/per-camera override with warning banner. **4b done** — burst-count parameter, APScheduler timer mode, busy → 409. **4c remaining** — disk-usage display + "keep most recent N" auto-prune. |
 | 5 | Focus mode and field networking | **done** — Per-camera MJPEG live stream with full-screen view (Phase 5a) and AP-fallback wifi via a single NetworkManager profile (Phase 5b — `pi/network/install-ap-fallback.sh`). |
 | 6 | Operator-manual finalisation | Fresh student walks the doc, screenshots collected, troubleshooting filled in from observed failures, v1.0 PDF tagged. |
@@ -239,9 +239,9 @@ pi/
 │   ├── settings.py       ← settings schema + load/save
 │   └── ipc.py            ← thin HTTP client to the daemon
 ├── systemd/
-│   ├── koenig-daemon.service
-│   ├── koenig-webui.service
-│   └── koenig-ap-fallback.service
+│   ├── payload-daemon.service
+│   ├── payload-webui.service
+│   └── payload-ap-fallback.service
 └── tests/
 ```
 

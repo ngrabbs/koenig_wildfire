@@ -1,7 +1,6 @@
-# koenig_wildfire
+# Narrowband K-line wildfire detection payload
 
-A narrowband K-line wildfire-detection payload for the MSU CubeSat / drone
-program.
+Built for the MSU CubeSat / drone program.
 
 Burning vegetation releases neutral potassium, which emits at a pair of
 near-infrared lines (766.5 and 769.9 nm). Three monochrome cameras image the
@@ -95,10 +94,10 @@ The Pi runs two services, started automatically on boot:
 
 | Service | Port | Job |
 |---|---|---|
-| `koenig-daemon` | 8001, loopback only | Owns the cameras. Capture, settings, focus. |
-| `koenig-webui` | 8000, all interfaces | The page the operator's browser loads. |
+| `payload-daemon` | 8001, loopback only | Owns the cameras. Capture, settings, focus. |
+| `payload-webui` | 8000, all interfaces | The page the operator's browser loads. |
 
-Point a browser at **`http://koenig-pi.local:8000`**. In the field, if no
+Point a browser at **`http://payload-pi.local:8000`**. In the field, if no
 known wifi is available the Pi raises its own access point — SSID **`satnet`**,
 password **`cubesat1`** — and the interface is at
 **`http://192.168.4.1:8000`**.
