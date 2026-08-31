@@ -368,7 +368,7 @@ For the incoming capstone team, roughly in order of value:
 The Arducam v2.2 is a CSI **switch**, not a true multiplexer — the Pi
 sees one camera at a time, so the three channels are captured
 *sequentially*, not simultaneously. On a moving drone the scene shifts
-between channels and the ratio `(S766 + S770) / (2 · S762)` gets noisier.
+between channels and the K-line ratio gets noisier.
 Mitigations are: fly slowly or hover, and register the channels in
 post-processing. The Arducam Camarray HAT would restore hardware-
 synchronised capture if the science team decides the drift is
