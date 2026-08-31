@@ -1,7 +1,7 @@
 ---
-title: "Koenig Wildfire — Operator Manual"
-subtitle: "MSU CubeSat Program"
-author: "MSU CubeSat Team"
+title: "Koenig Wildfire Payload — Operator Manual"
+subtitle: "Cubesat@MSU"
+author: "Nick Grabbs"
 date: "Draft — built from latest source"
 ---
 
