@@ -153,12 +153,37 @@ they do not see quite the same thing. Before the ratio can be evaluated, the
 frames have to be aligned so that a given pixel is the same patch of ground
 in all three.
 
-![Top: the same pixel box in two channels — different content, because the cameras are offset. Bottom: the same box after alignment.](img/rev_registration.jpg)
+![The same pixel box in two channels, from the drone at about 15–20 ft. Top: unaligned — the cameras are offset, so the diagonal path and the bright patch sit in different places. Bottom: after a 160 px correction, the same features line up.](img/rev_registration.jpg)
 
-Measured on that capture, the shifts onto the reference channel were
-`(+33, +121)` and `(−89, +40)` pixels. The alignment model is a simple
-translation, which is justified: measured rotation between channels is about
-0.1° and scale about 1.005, both negligible.
+The alignment model is a single translation per channel pair. That is
+justified for imaging at range: measured rotation between channels is about
+0.1° and scale about 1.005, both negligible. On this capture the correction
+was 160 px and it lifted the correlation between the two channels from 0.74
+to **0.98**.
+
+## Where a single translation is not enough
+
+It only works when everything in the scene is at roughly the same distance.
+The cameras are 40 mm apart, so nearer objects shift more between channels
+than distant ones, and no single translation can satisfy both at once.
+
+Searching exhaustively for the best possible shift — not merely the one our
+estimator picks — shows how sharp the distinction is:
+
+| Scene | Best achievable single-shift alignment |
+|---|---|
+| Foliage about 1 m away, on the bench | NCC **0.483** |
+| Ground from the drone, 15–20 ft | NCC **0.926** |
+
+At altitude the ground is effectively a flat plane and translation is the
+right model. At arm's length it is not, and the residual is parallax, which
+no better estimator can remove.
+
+This matters for close-range burn tests: it is fine when the fire and its
+backdrop sit at similar distance, which the current burn setup arranges. It
+is not fine pointed at a scene with real depth variation a metre away. If
+that case becomes important, it needs per-pixel registration rather than a
+better global fit.
 
 Each fit is reported with a before-and-after correlation score so it shows
 its own work, and frames too washed out or too featureless to align

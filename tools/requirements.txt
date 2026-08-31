@@ -5,3 +5,6 @@
 #   pip install -r tools/requirements.txt
 numpy>=1.24
 opencv-python-headless>=4.8
+
+# Optional: the three-point spectral plot in k_index.py
+matplotlib>=3.7

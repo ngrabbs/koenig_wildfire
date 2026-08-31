@@ -1,6 +1,8 @@
 # Narrowband K-line wildfire detection payload
 
-Built for the MSU CubeSat / drone program.
+A candidate payload for **EMBER** (Emission Monitoring for Burn Event
+Recognition), the MSU CubeSat programme. EMBER is the satellite; this is one
+instrument that could fly on it.
 
 Burning vegetation releases neutral potassium, which emits at a pair of
 near-infrared lines (766.5 and 769.9 nm). Three monochrome cameras image the
@@ -59,8 +61,10 @@ Not yet done, in the order it matters:
   `FBH750-10`, `FBH770-10`, `FBH780-10`, 10 nm FWHM. Until they arrive every
   camera sees identical broadband light and **no potassium measurement
   exists**. All imagery so far is engineering data.
-- **The K-line index is specified but not written.** It would return noise
-  until the filters are fitted.
+- **The K-line index is written but unproven.** `tools/k_index.py` is
+  validated against synthetic data with a known answer, but with no filters
+  fitted every channel sees identical light, so on real captures it returns
+  noise about zero.
 - **Flat-field calibration is built and validated but not applied** — the
   only flat captured so far is invalid (see below).
 - **Capture is sequential and takes ~2 s** for all three channels, which is
@@ -116,9 +120,9 @@ No hardware required.
 ## The processing chain
 
 ```
-capture  ──▶  flat_field.py  ──▶  register_triplets.py  ──▶  K-line index
- 3 raw         instrument            channels on a            the measurement
- frames        response out          common pixel grid        (not built yet)
+capture  ──▶  flat_field.py  ──▶  register_triplets.py  ──▶  k_index.py
+ 3 raw         instrument            channels on a            delta77, the
+ frames        response out          common pixel grid        measurement
 ```
 
 The order matters: flat-fielding must come **before** registration, because
@@ -133,7 +137,20 @@ the image out from under it.
 # then per capture session
 .venv/bin/python tools/flat_field.py apply ./raw --correction correction.npz -o ./corrected
 .venv/bin/python tools/register_triplets.py ./corrected -o ./aligned --composite
+.venv/bin/python tools/k_index.py ./aligned -o ./kindex
 ```
+
+The measurement itself is the K-index, δ₇₇ — the fractional excess of the
+on-line channel over the continuum interpolated from the two references:
+
+```
+             S770 - (1/3)(S750 + 2*S780)
+  δ77   =   -----------------------------
+                (1/3)(S750 + 2*S780)
+```
+
+Positive means the 770 nm channel carries light the continuum cannot
+explain. Zero means no potassium emission.
 
 Both tools explain their own output and flag captures they could not process
 rather than failing quietly.
@@ -206,7 +223,6 @@ Roughly in order of value to the project:
 3. Investigate hardware-triggered simultaneous capture — these camera modules
    have trigger and strobe pins, which would remove the dominant error source
    on a moving platform.
-4. Write the K-line index tool once the filters are on.
 5. Correct the ~120 px boresight offset on the camera plate.
 6. Characterise the wifi link range on the ground; it became unusable at
    altitude during the August flight.
