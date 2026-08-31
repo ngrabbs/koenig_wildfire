@@ -252,16 +252,36 @@ def focus_stop():
     return redirect(url_for("index"))
 
 
+# Reboot and shutdown use POST/Redirect/GET rather than rendering straight
+# from the POST. Rendering from the POST leaves the browser sitting on the
+# POST URL, so the natural thing to do while waiting - refresh to see whether
+# the Pi is back - silently re-submits the form and reboots it again. In the
+# field that is an operator stuck in a reboot loop with no obvious way out,
+# and the page used to tell them to refresh. The redirect target is an
+# ordinary GET, so refreshing it is harmless.
+#
+# The daemon delays the actual command by ~2 s, which is what leaves time to
+# serve the redirect and the status page before the machine goes down.
+
+
 @app.post("/system/reboot")
 def system_reboot():
     _request("/system/reboot", "POST")
-    return render_template("system_status.html", action="reboot")
+    return redirect(url_for("system_status", action="reboot"), code=303)
 
 
 @app.post("/system/shutdown")
 def system_shutdown():
     _request("/system/shutdown", "POST")
-    return render_template("system_status.html", action="shutdown")
+    return redirect(url_for("system_status", action="shutdown"), code=303)
+
+
+@app.get("/system/status")
+def system_status():
+    action = request.args.get("action", "reboot")
+    if action not in ("reboot", "shutdown"):
+        action = "reboot"
+    return render_template("system_status.html", action=action)
 
 
 def main():

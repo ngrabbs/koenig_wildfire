@@ -12,6 +12,11 @@
             background: #fafafa; }
     code { background: #eee; padding: 0.15em 0.4em; border-radius: 3px;
            font-size: 0.95em; }
+    .actions { margin-top: 1.5em; }
+    .btn { display: inline-block; padding: 0.6em 1.1em; border-radius: 6px;
+           background: #2c3e50; color: #fff; text-decoration: none; }
+    .btn:hover, .btn:focus { background: #1a252f; }
+    .hint { color: #666; font-size: 0.9em; margin-top: 0.5em; }
   </style>
 </head>
 <body>
@@ -20,8 +25,9 @@
       <h1>The Pi is rebooting</h1>
       <p>Power will cycle and the services will restart automatically.
          This usually takes about 30&ndash;60 seconds.</p>
-      <p>When you see the wifi reconnect, refresh this page or browse to
-         <code>http://koenig-pi.local:8000</code> again.</p>
+      <p>When the wifi reconnects, use the button below. Nothing on this
+         page will reboot the Pi again &mdash; it is safe to leave open or
+         refresh while you wait.</p>
     {% else %}
       <h1>The Pi is shutting down</h1>
       <p>In a few seconds the Pi will fully power off. You will need to
@@ -30,7 +36,8 @@
          again once it's off.</p>
       <p>Wait for any activity LEDs to stop blinking before unplugging.</p>
     {% endif %}
-    <p><a href="/">&larr; back to main page</a> (will only work once the Pi is back)</p>
+    <p class="actions"><a class="btn" href="/">&larr; Back to the main page</a></p>
+    <p class="hint">The link will only work once the Pi is back up.</p>
   </div>
 </body>
 </html>
