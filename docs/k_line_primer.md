@@ -115,17 +115,20 @@ First interpolate the continuum at 770 nm from the two references. Since
 770 sits two-thirds of the way from 750 to 780:
 
 ```
-continuum_770 = (1/3) × signal_750  +  (2/3) × signal_780
-fire_index(pixel) = signal_770 / continuum_770
+continuum_770 = (1/3) × (signal_750 + 2 × signal_780)
+delta77(pixel) = (signal_770 - continuum_770) / continuum_770
 ```
 
+`delta77` is the *fractional excess* over the continuum, so it is signed and
+sits at zero when nothing is emitting:
+
 - **No fire:** the 770 channel sees only continuum, which is what the
-  interpolation predicts. Ratio ≈ 1.
-- **Fire present:** K emission adds signal at 770 that the continuum
-  cannot account for. Ratio rises above 1.
-- **Threshold:** declare "candidate fire pixel" when ratio exceeds some
-  empirically chosen threshold (probably 1.3–2.0; this will need to be
-  calibrated against ground-truth data).
+  interpolation predicts. delta77 ≈ 0.
+- **Fire present:** K emission adds signal at 770 that the continuum cannot
+  account for. delta77 goes positive.
+- **Negative:** the on-line channel is dimmer than predicted — not a fire.
+- **Threshold:** declare "candidate fire pixel" above some empirically
+  chosen delta77, to be calibrated against ground truth.
 
 This is Stage 1. It's pixel-wise, runs in microseconds, and rejects most
 of the obvious false positives (anything broadband-bright).

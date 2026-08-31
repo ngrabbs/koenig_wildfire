@@ -262,7 +262,9 @@ def check(flat_dir: Path) -> int:
     print("and since it over-corrects by a different amount per camera it makes")
     print("the channel-to-channel ratio worse - the one thing that matters.")
     print("Use a distant uniform source: even overcast, or a lit white panel")
-    print("far enough away to be out of the near field.")
+    print("far enough away to be out of the near field. Spectralon and")
+    print("Fluorilon are made for this; Teflon sheet is a cheap substitute")
+    print("and works well.")
     print()
     print(f"{'':<7}{'mean':>7}{'p99':>6}{'clipped':>9}"
           f"{'centre/corner':>15}{'structure':>11}{'axis off':>10}")

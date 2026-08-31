@@ -30,7 +30,8 @@ the stack-up, the optics, and the power pack — see
 | Raspberry Pi 4 (4 GB or 8 GB) | 1 | Pi 5 not supported yet — see architecture doc for reasoning |
 | Arducam Multi Camera Adapter v2.2 | 1 | Also sold as the B0120 4-port board. Mounts directly on the Pi's GPIO header. |
 | InnoMaker CAM-IMX296RAW | 3 | Currently fitted. Global-shutter monochrome, 1456 × 1088, self-clocked from an onboard 54 MHz oscillator. |
-| Thorlabs `FBH750-10` | 1 | 750 nm, 10 nm FWHM. Continuum reference below the line. Bolts onto the lens housing — no wiring. |
+| Thorlabs `FBH750-10` | 1 | 750 nm, 10 nm FWHM. Continuum reference below the line, long-range set. Bolts onto the lens housing — no wiring. |
+| Thorlabs `FBH760-10` | 1 | 760 nm, 10 nm FWHM. Continuum reference for the close-range set (driveway, lab). Optional — the 750 nm set also works close in. |
 | Thorlabs `FBH770-10` | 1 | 770 nm, 10 nm FWHM. **On-line** — the K I doublet. |
 | Thorlabs `FBH780-10` | 1 | 780 nm, 10 nm FWHM. Continuum reference above the line. |
 | 3D-printed filter holders | 3 | STLs in `../hardware/stl/` |

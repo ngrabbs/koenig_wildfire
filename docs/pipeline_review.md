@@ -136,9 +136,10 @@ vignetting than the same lens sees on a real distant scene**. Correcting with
 it over-corrects, by a different amount on each camera, which made the
 channel ratio worse rather than better.
 
-The fix is a distant uniform source — even overcast sky, or an evenly lit
-white panel several feet away — and it is a ten-second capture once
-conditions allow. The correction has to be re-derived through the filters
+The fix is a distant uniform source, and it is a ten-second capture once
+one is available. Spectralon and Fluorilon are engineered
+diffuse-reflectance standards intended for this; Teflon sheet is a cheap and
+reasonable substitute, and is what D. Koenig's group uses. The correction has to be re-derived through the filters
 anyway, since filter transmission varies unit to unit and will not cancel the
 way matched lenses do.
 
@@ -189,31 +190,50 @@ Each fit is reported with a before-and-after correlation score so it shows
 its own work, and frames too washed out or too featureless to align
 reliably are flagged rather than silently accepted.
 
-# Stage 4 — K-line index (specified, not built)
+# Stage 4 — K-line index
 
 **In:** an aligned, corrected triplet.
 **Out:** one number per pixel — the potassium line strength — as a map, plus
 a three-point spectral plot for any selected region.
 
-The filters on order are Thorlabs hard-coated bandpass units, 10 nm FWHM:
+Two filter sets are standardised, both Thorlabs hard-coated bandpass,
+10 nm FWHM. The long-range set is the one on order and is also serviceable
+close in:
 
-| Filter | Centre | Role |
-|---|---|---|
-| `FBH750-10` | 750 nm | continuum reference, below the line |
-| `FBH770-10` | 770 nm | **on-line** — the K I doublet at 766.5 / 769.9 nm |
-| `FBH780-10` | 780 nm | continuum reference, above the line |
+| Set | Continuum | On-line | Continuum | Use |
+|---|---|---|---|---|
+| Long range | 750 nm | 770 nm | 780 nm | Flight, and adequate close range |
+| Close range | 760 nm | 770 nm | 780 nm | Driveway and lab work |
+
+The move from 760 nm to 750 nm for the long-range set came out of
+D. Koenig's analysis of hyperspectral imagery of real wildfires.
 
 This is a bracketing design: the two reference channels sit either side of
 the line, so the continuum underneath it can be interpolated rather than
 assumed. Since 770 nm sits two-thirds of the way from 750 to 780:
 
-$$C_{770} = \tfrac{1}{3}S_{750} + \tfrac{2}{3}S_{780}
+$$C_{770} = \tfrac{1}{3}\left(S_{750} + 2 S_{780}\right)
 \qquad\qquad
-\text{K index} = \frac{S_{770}}{C_{770}}$$
+\delta_{77} = \frac{S_{770} - C_{770}}{C_{770}}$$
 
-An index of 1 means no potassium emission; above 1 means the 770 nm channel
-is carrying light the continuum cannot explain. That is the fire signature,
-evaluated independently at every pixel.
+The index is the *fractional excess* of the on-line channel over the
+interpolated continuum, so it is signed and centred on zero:
+
+- $\delta_{77} > 0$ — the 770 nm channel carries light the continuum cannot
+  explain. That is the potassium signature.
+- $\delta_{77} = 0$ — no emission.
+- $\delta_{77} < 0$ — the on-line channel is dimmer than the continuum
+  predicts.
+
+Evaluated independently at every pixel, so the output is a map rather than a
+single number. Implemented in `tools/k_index.py`.
+
+**Validation.** Against synthetic data with a continuum deliberately sloping
+across the band (1.00 / 0.90 / 0.85 at 750 / 770 / 780) and a known 0.30
+emission patch, the median $\delta_{77}$ comes out **+0.000** — the slope is
+removed exactly — and the 99th percentile **+0.293**, recovering the injected
+signal. That is precisely the case a single off-line reference gets wrong and
+bracketing gets right.
 
 # How this compares with the Resonon
 
@@ -291,7 +311,7 @@ needed to separate antenna blockage from interference.
 | Web interface: capture, gallery, settings, timer | working |
 | Flat-field and dark correction | **tool built and validated; awaiting a valid flat** |
 | Channel registration | working |
-| K-line index | specified, not built — waiting on filters |
+| K-line index (δ₇₇) | **built and validated against synthetic data**; unproven on real data until filters are fitted |
 | Narrowband filters (750 / 770 / 780 nm) | on order |
 | Fire response | **not tested — no filters** |
 | Simultaneous capture via hardware trigger | not attempted |

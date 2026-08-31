@@ -168,8 +168,14 @@ failed in instructive ways:
   *worse*.
 
 Use a distant uniform source: even overcast, or an evenly lit white panel
-several feet away. `flat_field.py check` will tell you before you waste a
-session on it.
+several feet away.
+Better still, use a material made for the job. **Spectralon** and
+**Fluorilon** are engineered diffuse-reflectance standards and give excellent
+uniformity; **Teflon sheet** is far cheaper and a reasonable substitute.
+D. Koenig's group uses Teflon for exactly this. Light it evenly, fill the
+frame with it, and keep it far enough away to be out of the near field.
+
+`flat_field.py check` will tell you before you waste a session on it.
 
 ---
 
