@@ -200,6 +200,8 @@ On the main page, next to **Capture**, there are three buttons:
 black full-screen view of that camera's live feed at about 15
 frames per second.
 
+![Focus mode on camera 1. The whole browser window becomes the live view, with a reminder of what to do and the Exit focus button in the top-right. A target with fine detail at a known scale — here a cutting mat — makes it easy to see the moment the image snaps into focus.](img/live_focus_mode.png)
+
 Procedure:
 
 1. Click the **Focus cam N** button for the camera you want to focus.
@@ -208,6 +210,13 @@ Procedure:
    tend to "snap" into focus over a small range of lens rotation.
 4. Click **Exit focus** (top-right) to return to the main page.
 5. Repeat for the other two cameras.
+
+> **If the view looks black, check the exposure before anything else.**
+> Focus mode uses the same exposure as capture, and the cameras never
+> adjust it themselves. An exposure set outdoors is far too short for an
+> indoor target, and the live view comes up black even though the camera
+> is working perfectly. Raise **ExposureTime** in **Camera settings** —
+> it is in microseconds, so try multiplying it by five.
 
 Because the three cameras share one data lane through the multiplexer,
 you can only watch one at a time. Trying to capture or starting another
@@ -307,7 +316,7 @@ What to do:
    right. Getting this wrong by 10x is normal and harmless.
 3. As a starting point: bright sunlight needs a few hundred
    microseconds; an overcast day a few thousand; a dim room 10,000 or
-   more. A dark target such as a blackboard needs more still.
+   more. A dark target such as a cutting mat needs more still.
 
 **All white instead** means the opposite — too much exposure. Come down
 by the same factor. Beware that a washed-out picture has lost
@@ -316,7 +325,8 @@ maximum", so no amount of processing recovers it. When in doubt expose
 darker, because an underexposed picture can be brightened afterwards.
 
 > **A worked example.** A live focus view that appeared completely
-> black turned out to be a blackboard at 1500 microseconds, indoors.
+> black turned out to be a dark cutting mat at 1500 microseconds,
+> indoors.
 > The frames were fine — mean brightness about 12% of full scale, which
 > a laptop screen renders as black. At 8000 microseconds the same view
 > was perfectly usable.
