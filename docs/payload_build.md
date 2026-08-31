@@ -23,7 +23,7 @@ know *why we image potassium*, read [`k_line_primer.md`](k_line_primer.md).
 
 # The payload at a glance
 
-![The payload in three pieces. Left: battery enclosure lid. Middle: battery enclosure base with the 10 000 mAh pack seated. Right: the Pi 4 with the Arducam v2.2 multi-camera board on the GPIO header, standing on the standoffs that tie the whole stack together.](img/payload1.jpg){ width=95% }
+![The payload in three pieces. Left: battery enclosure lid. Middle: battery enclosure base with the 10 000 mAh pack seated. Right: the Pi 4 with the Arducam v2.2 multi-camera board on the GPIO header, standing on the standoffs that tie the whole stack together.](img/payload1.jpg)
 
 The payload is four subassemblies bolted into one rigid package on a
 common set of standoffs, so it can be handed to a drone as a single
@@ -72,7 +72,7 @@ read this section before touching hardware.
 
 ## Flight plate — Raspberry Pi HQ / IMX477
 
-![Bottom of the flight plate, looking into the three lenses. Note the printed white collars that hold each lens in its bore. The lens at lower-right still has its cap on.](img/payload3.jpg){ width=75% }
+![Bottom of the flight plate, looking into the three lenses. Note the printed white collars that hold each lens in its bore. The lens at lower-right still has its cap on.](img/payload3.jpg)
 
 This is the plate that flies today. Three **Raspberry Pi HQ cameras
 (IMX477**, 4056 × 3040, 12-bit colour Bayer) with the **IR-cut filter
@@ -105,9 +105,9 @@ blocker is fitting the plate, not software. Original reasoning in
 
 ## Monochrome plate — IMX296 (working as of 2026-08-29)
 
-![The monochrome plate, sensor side. Three cameras with lens caps on.](img/payload4.jpg){ width=75% }
+![The monochrome plate, sensor side. Three cameras with lens caps on.](img/payload4.jpg)
 
-![Back of the monochrome plate. Each camera is a separate board with its own FFC connector.](img/payload6.jpg){ width=75% }
+![Back of the monochrome plate. Each camera is a separate board with its own FFC connector.](img/payload6.jpg)
 
 Three **IMX296** global-shutter monochrome cameras. On paper this is the
 *right* sensor for this payload:
@@ -140,9 +140,9 @@ The modules are InnoMaker **CAM-IMX296RAW**, self-clocked from an onboard
 
 This is worth recording because it will drive a future design decision.
 
-![Side view of the monochrome plate. Each camera sits in a threaded barrel with a knurled adjustment collar and a locking set screw.](img/payload5.jpg){ width=68% }
+![Side view of the monochrome plate. Each camera sits in a threaded barrel with a knurled adjustment collar and a locking set screw.](img/payload5.jpg)
 
-![The flight plate's focus arrangement — the lens simply threads into a printed collar. No detent, no lock.](img/payload7.jpg){ width=68% }
+![The flight plate's focus arrangement — the lens simply threads into a printed collar. No detent, no lock.](img/payload7.jpg)
 
 | | Monochrome plate | Flight (HQ) plate |
 |---|---|---|
@@ -163,7 +163,7 @@ and re-check all three cameras after transport, before every flight.
 
 # Power
 
-![Underside of the battery pack, showing the ratings label.](img/payload2.jpg){ width=70% }
+![Underside of the battery pack, showing the ratings label.](img/payload2.jpg)
 
 **Adafruit USB Battery Pack for Raspberry Pi — 10 000 mAh, 2 × 5 V
 outputs.** The label reads 10 000 mAh / **37 Wh** nominal.

@@ -53,7 +53,7 @@ PDF tells you when it was built).
    `cam2_770nm` suffix in each filename). The first burst takes ~8
    seconds while the cameras warm up; subsequent bursts are faster.
 
-![Figure 1: The main page on first load (placeholder)](img/quickstart_homepage.png){ width=80% }
+![Figure 1: The main page on first load (placeholder)](img/quickstart_homepage.png)
 
 # What this thing does (one paragraph)
 
@@ -75,7 +75,7 @@ curious.
 
 ## The main page
 
-![Figure 2: Annotated main page (placeholder)](img/main_page_annotated.png){ width=85% }
+![Figure 2: Annotated main page (placeholder)](img/main_page_annotated.png)
 
 | # | Element | What it does |
 |---|---|---|

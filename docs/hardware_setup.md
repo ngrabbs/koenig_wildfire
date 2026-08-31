@@ -105,7 +105,7 @@ Cameras plug into the HAT's three (or four — fourth is unused) input
 ports. Order matters only insofar as our daemon maps physical port to
 filter wavelength: cam0 → 762 nm, cam1 → 766 nm, cam2 → 770 nm.
 
-![Figure 1: Wiring diagram (placeholder)](img/wiring_diagram.png){ width=80% }
+![Figure 1: Wiring diagram (placeholder)](img/wiring_diagram.png)
 
 # dtoverlay configuration
 

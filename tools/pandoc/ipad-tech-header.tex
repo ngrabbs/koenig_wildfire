@@ -1,5 +1,10 @@
 \usepackage{amsmath,amssymb,amsfonts}
 \usepackage{graphicx}
+% Default figure width for every included image. Set here rather than
+% as pandoc { width=N% } attributes on each image: those attributes are
+% a pandoc extension and GitHub renders them as literal text next to the
+% figure, which looks broken now the repo is public.
+\setkeys{Gin}{width=0.9\linewidth,keepaspectratio}
 \usepackage{xcolor}
 \usepackage{hyperref}
 \hypersetup{

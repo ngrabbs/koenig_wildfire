@@ -26,7 +26,7 @@ on a 3D-printed plate, feeding a single Raspberry Pi 4 through an Arducam
 Multi Camera Adapter v2.2. The whole payload — cameras, Pi, and battery —
 is bolted into one rigid package that flies as a unit.
 
-![The three-camera plate. Each camera is an IMX296 global-shutter monochrome sensor with an M12 lens; the filters bolt on in front of these.](img/rev_plate.jpg){ width=78% }
+![The three-camera plate. Each camera is an IMX296 global-shutter monochrome sensor with an M12 lens; the filters bolt on in front of these.](img/rev_plate.jpg)
 
 Two things about this sensor choice matter for the science:
 
@@ -73,7 +73,7 @@ and after that the map no longer lines up with what it describes.
 20260830_150216_444_cam2_770nm.jpg
 ```
 
-![One capture event. The same scene through all three channels — currently identical light, because no filters are fitted.](img/rev_raw_triplet.jpg){ width=100% }
+![One capture event. The same scene through all three channels — currently identical light, because no filters are fitted.](img/rev_raw_triplet.jpg)
 
 The multiplexer is a switch, not a true multiplexer: the Pi's camera
 interface can only talk to one sensor at a time, so the three channels are
@@ -105,7 +105,7 @@ structure. The correction is:
 $$\text{corrected} = (\text{raw} - \text{dark}) \times \text{gain},
 \qquad \text{gain}(x,y) = \frac{\text{target}}{\text{flat} - \text{dark}}$$
 
-![Correction maps derived for the three cameras. Dark is low gain, bright is high gain: each map is the inverse of that camera's own light falloff.](img/rev_gainmaps.jpg){ width=100% }
+![Correction maps derived for the three cameras. Dark is low gain, bright is high gain: each map is the inverse of that camera's own light falloff.](img/rev_gainmaps.jpg)
 
 The tool is written and validated. Against a synthetic test set with known
 errors deliberately injected — channel gains of 1.00 / 1.35 / 0.85, per-camera
@@ -153,7 +153,7 @@ they do not see quite the same thing. Before the ratio can be evaluated, the
 frames have to be aligned so that a given pixel is the same patch of ground
 in all three.
 
-![Top: the same pixel box in two channels — different content, because the cameras are offset. Bottom: the same box after alignment.](img/rev_registration.jpg){ width=92% }
+![Top: the same pixel box in two channels — different content, because the cameras are offset. Bottom: the same box after alignment.](img/rev_registration.jpg)
 
 Measured on that capture, the shifts onto the reference channel were
 `(+33, +121)` and `(−89, +40)` pixels. The alignment model is a simple
