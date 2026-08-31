@@ -105,7 +105,34 @@ Cameras plug into the HAT's three (or four — fourth is unused) input
 ports. Order matters only insofar as our daemon maps physical port to
 filter wavelength: cam0 → 762 nm, cam1 → 766 nm, cam2 → 770 nm.
 
-![Figure 1: Wiring diagram (placeholder)](img/wiring_diagram.png)
+```mermaid
+flowchart TB
+    PI["Raspberry Pi 4"]
+    HAT["Arducam Multi Camera<br/>Adapter v2.2 (B0120)"]
+    C0["Camera 0<br/>762 nm"]
+    C1["Camera 1<br/>766 nm"]
+    C2["Camera 2<br/>770 nm"]
+    X["port 3<br/><i>unused</i>"]
+
+    PI ---|"GPIO header<br/>i2c-1 + control GPIOs 4, 17, 18"| HAT
+    PI ===|"15-pin CSI ribbon<br/><b>easy to forget</b>"| HAT
+    HAT ---|"15-pin CSI"| C0
+    HAT ---|"15-pin CSI"| C1
+    HAT ---|"15-pin CSI"| C2
+    HAT -.- X
+
+    style X stroke-dasharray: 4 4
+```
+
+Two connections are easy to get wrong, and both produce the same
+symptom — sensors enumerate over i2c but every capture times out:
+
+- **The Pi-to-HAT CSI ribbon.** The HAT sits on the GPIO header, which
+  carries i2c and the control lines but **not** the camera data. The
+  image data needs its own ribbon between the Pi's camera connector and
+  the HAT. Seating the HAT on the header is not enough.
+- **Ribbon orientation at any of the four connectors.** See the note
+  above; a ribbon in backwards fails silently rather than obviously.
 
 # dtoverlay configuration
 

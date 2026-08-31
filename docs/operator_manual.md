@@ -53,7 +53,7 @@ PDF tells you when it was built).
    `cam2_770nm` suffix in each filename). The first burst takes ~8
    seconds while the cameras warm up; subsequent bursts are faster.
 
-![Figure 1: The main page on first load (placeholder)](img/quickstart_homepage.png)
+![The main page as it looks on first load, before any pictures have been taken.](img/quick_start_homepage.png)
 
 # What this thing does (one paragraph)
 
@@ -71,17 +71,21 @@ curious.
 
 # Interface walkthrough
 
-*To be filled in after Phase 2.*
+Everything the operator needs is on one page. There is no menu and no
+login — open the address in a browser and the whole interface is in
+front of you.
 
 ## The main page
 
-![Figure 2: Annotated main page (placeholder)](img/main_page_annotated.png)
+![The main page with every control labelled. The numbers match the table below.](img/main_page_annotated.png)
 
 | # | Element | What it does |
 |---|---|---|
 | 1 | **Capture** button | Takes one picture, adds it to the gallery below. |
 | 2 | **Clear all** button | Deletes every image in the gallery (asks first). |
 | 3 | Image card | A thumbnail of one captured picture, with its filename and a per-image **Delete** button. Click the thumbnail to open the full-size image in a new tab. |
+
+![The same page without annotations — this is what you will actually see.](img/main_page_not_annotated.png)
 
 The filename of each picture is its UTC timestamp:
 `YYYYMMDD_HHMMSS_mmm.jpg`. Sort order in the gallery is newest first.
@@ -118,6 +122,8 @@ takes ~150 seconds and produces 300 images. The browser will appear
 to "hang" for that whole time — that's normal, don't reload the page
 while it's working.
 
+![Burst count and the auto-capture interval, both inside the Camera settings panel.](img/burst_and_timer_controls.png)
+
 ### Timed (interval) capture
 
 In the **Camera settings** panel under **Capture behaviour**, tick
@@ -143,6 +149,8 @@ quietly dropped — no images are queued or duplicated.
 
 ## Reviewing pictures
 
+![The gallery after several capture events. Each event produces three images, one per camera, sharing a timestamp prefix.](img/gallery_with_images.png)
+
 Every capture lands in the gallery on the same page. Click any
 thumbnail to open the full-size image in a new browser tab — from
 there you can right-click and **Save As** to copy the file to your
@@ -167,7 +175,11 @@ bin. If you might need a picture later, save it to your laptop first.
 
 ## Changing camera settings
 
-*To be filled in after Phase 3.*
+Click **Camera settings** at the top of the page to expand the panel.
+Change what you need, then click **Save settings** at the bottom — nothing
+takes effect until you save.
+
+![The Camera settings panel, expanded.](img/camera_settings.png)
 
 > **Important.** The science only works if all three cameras use the
 > **same** exposure, gain, and white-balance settings. The default
@@ -274,9 +286,40 @@ three:
   entries. If one is missing, it's a hardware problem — that camera
   isn't being reached at all.
 
-## "The pictures are all black / all white"
+## "The pictures are all black" (or focus mode looks black)
 
-*(placeholder)*
+Almost always **exposure**, not a fault. The cameras never adjust
+exposure on their own — auto-exposure is deliberately switched off,
+because the three channels have to expose identically for the
+measurement to mean anything. So a setting that was right outdoors is
+far too short indoors, and vice versa.
+
+This bites hardest in **focus mode**, which uses the same exposure as
+capture. Set the exposure on a bright scene outside, walk inside to
+focus on a target, and the live view looks completely black — while the
+cameras are working perfectly.
+
+What to do:
+
+1. Open **Camera settings** and look at **ExposureTime**. It is in
+   **microseconds**, so `8000` is 8 milliseconds, not 8 seconds.
+2. Multiply it by about 5 and save. Repeat until the picture looks
+   right. Getting this wrong by 10x is normal and harmless.
+3. As a starting point: bright sunlight needs a few hundred
+   microseconds; an overcast day a few thousand; a dim room 10,000 or
+   more. A dark target such as a blackboard needs more still.
+
+**All white instead** means the opposite — too much exposure. Come down
+by the same factor. Beware that a washed-out picture has lost
+information permanently: a saturated pixel records only "at least
+maximum", so no amount of processing recovers it. When in doubt expose
+darker, because an underexposed picture can be brightened afterwards.
+
+> **A worked example.** A live focus view that appeared completely
+> black turned out to be a blackboard at 1500 microseconds, indoors.
+> The frames were fine — mean brightness about 12% of full scale, which
+> a laptop screen renders as black. At 8000 microseconds the same view
+> was perfectly usable.
 
 ## "Focus mode shows a completely black image"
 
@@ -307,7 +350,21 @@ trigger comes.
 
 ## "I'm out of disk space"
 
-*(placeholder)*
+There is **no automatic cleanup**. Nothing deletes old pictures for you,
+so a long timed-capture run will fill the card and captures will start
+failing.
+
+A three-camera capture is roughly 300 KB at the current settings, so the
+card holds a very large number of them — but timed capture at a short
+interval adds up faster than you would expect. Before a long run:
+
+1. Copy anything you want to keep to your laptop (click a thumbnail,
+   then **Save As**).
+2. Use **Clear all** on the main page to empty the gallery.
+
+If captures are already failing, clear the gallery and try again. If
+that does not help, ask whoever set the payload up to check free space
+over ssh with `df -h`.
 
 # Glossary
 
