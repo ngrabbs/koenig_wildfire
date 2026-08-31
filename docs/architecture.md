@@ -1,7 +1,7 @@
 ---
 title: "Koenig Wildfire — System Architecture"
 subtitle: "Design and rationale for the Pi 4 / mux / 3-camera build"
-date: "Phase 1 — draft"
+date: "Design document — updated 31 August 2026"
 ---
 
 # Purpose of this document

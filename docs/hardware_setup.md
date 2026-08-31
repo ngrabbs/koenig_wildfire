@@ -1,7 +1,7 @@
 ---
 title: "Koenig Wildfire — Hardware Setup"
 subtitle: "First-boot Pi configuration, wiring, and bring-up checks"
-date: "Phase 1 — stub"
+date: "Version 1.0 — 31 August 2026 · for payload v0.3"
 ---
 
 # Audience and scope
@@ -19,10 +19,9 @@ If the payload is already built and you just want to use it, you want
 the stack-up, the optics, and the power pack — see
 [`payload_build.md`](payload_build.md).
 
-> **Status — Phase 5b (field-ready).** OS setup, wiring, mux
-> dtoverlay, bring-up checks, software install, and AP-fallback wifi
-> are documented and tested end-to-end on Trixie + Pi 4 + IMX477 +
-> v2.2 mux.
+> **Status — field-ready.** OS setup, wiring, mux dtoverlay, bring-up
+> checks, software install, and AP-fallback wifi are documented and
+> tested end-to-end on Trixie + Pi 4 + IMX296 + v2.2 mux.
 
 # Parts list
 
@@ -30,10 +29,10 @@ the stack-up, the optics, and the power pack — see
 |---|---|---|
 | Raspberry Pi 4 (4 GB or 8 GB) | 1 | Pi 5 not supported yet — see architecture doc for reasoning |
 | Arducam Multi Camera Adapter v2.2 | 1 | Also sold as the B0120 4-port board. Mounts directly on the Pi's GPIO header. |
-| Raspberry Pi HQ Camera (IMX477) | 3 | Currently used. InnoMaker IMX296RAW is a global-shutter alternative — see architecture doc. |
-| Narrowband filter — 762 nm | 1 | Off-line reference. Bolts onto the lens housing — no wiring. |
-| Narrowband filter — 766 nm | 1 | On-line |
-| Narrowband filter — 770 nm | 1 | On-line |
+| InnoMaker CAM-IMX296RAW | 3 | Currently fitted. Global-shutter monochrome, 1456 × 1088, self-clocked from an onboard 54 MHz oscillator. |
+| Thorlabs `FBH750-10` | 1 | 750 nm, 10 nm FWHM. Continuum reference below the line. Bolts onto the lens housing — no wiring. |
+| Thorlabs `FBH770-10` | 1 | 770 nm, 10 nm FWHM. **On-line** — the K I doublet. |
+| Thorlabs `FBH780-10` | 1 | 780 nm, 10 nm FWHM. Continuum reference above the line. |
 | 3D-printed filter holders | 3 | STLs in `../hardware/stl/` |
 | CubeSat bottom panel | 1 | 3D print — base of the stack |
 | Camera plate | 1 | 3D print — holds the three cameras. See `payload_build.md` |
@@ -159,19 +158,26 @@ Then `/boot/firmware/config.txt` needs:
 # turn off auto-detect — it gets confused by the mux
 camera_auto_detect=0
 
-# our patched 4-port mux overlay, with all three ports as IMX477
-dtoverlay=koenig-mux-4port,cam0-imx477,cam1-imx477,cam2-imx477
+# our patched 4-port mux overlay, with all three ports as IMX296.
+# ALL THREE PORTS MUST MATCH THE SENSOR ACTUALLY FITTED: if any
+# configured port fails to probe, the whole video-mux graph fails to
+# register and libcamera reports "No cameras available" - including
+# the ports that probed fine.
+dtoverlay=koenig-mux-4port,cam0-imx296,cam1-imx296,cam2-imx296
 
 # i2c on the GPIO header (where the mux actually lives)
 dtparam=i2c_arm=on
 ```
 
 Reboot and verify with `rpicam-hello --list-cameras` — you should see
-three IMX477 entries with paths like
-`/base/soc/i2c@7e804000/pca@70/i2c@{0,1,2}/imx477@1a`.
+three `imx296` entries at `1456x1088 10-bit MONO`, with paths like
+`/base/soc/i2c@7e804000/pca@70/i2c@{0,1,2}/imx296@1a`.
 
-See [`pi/dtoverlay/README.md`](../pi/dtoverlay/README.md) for the
-deeper explanation of the patch and a TODO for IMX296 support.
+Upstream Pi OS ships no IMX296 support for the camera multiplexer at
+all; ours is added by `pi/dtoverlay/imx296.dtsi` and the overlay build.
+See [`pi/dtoverlay/README.md`](../pi/dtoverlay/README.md) for the patch,
+the clock requirement, and what to check if the sensors probe over i2c
+but never deliver a frame.
 
 # Bring-up checks
 
@@ -189,8 +195,8 @@ rebooting, run these in order:
    ```bash
    rpicam-hello --list-cameras
    ```
-   Should list three `imx477` entries at
-   `/base/soc/i2c@7e804000/pca@70/i2c@{0,1,2}/imx477@1a`.
+   Should list three `imx296` entries at
+   `/base/soc/i2c@7e804000/pca@70/i2c@{0,1,2}/imx296@1a`.
    If you get zero or fewer than three, check the camera-to-mux
    ribbons and reseat them.
 

@@ -2,7 +2,7 @@
 title: "Koenig Wildfire Payload — Operator Manual"
 subtitle: "Cubesat@MSU"
 author: "Nick Grabbs"
-date: "Draft — built from latest source"
+date: "Version 1.0 — 31 August 2026 · for payload v0.3"
 ---
 
 # About this manual
