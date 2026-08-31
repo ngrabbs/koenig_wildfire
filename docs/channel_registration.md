@@ -96,6 +96,21 @@ variable offset between channels is the aircraft moving between exposures.**
 
 # Root cause: the capture cycle is too slow
 
+> **Correction, 2026-08-31 — the timings in this section are invalid.**
+> Every cycle-time number below was measured while a separate bug was
+> live: holding three Picamera2 instances open at once broke video-mux
+> routing, so two of the three "captures" in each cycle were re-reads of
+> an already-selected camera and did no mux switching at all. The
+> measurements were real, but they were not measuring three-channel
+> capture.
+>
+> Correct three-channel capture, one camera opened at a time, costs about
+> **1.95 s** — slower than the pre-optimisation code, not faster. The
+> dominant term is `Picamera2.close()` at 0.404 s per camera. The
+> resolution and encode findings below still hold in direction; only the
+> absolute numbers are wrong. See the commit `capture: fix three-channel
+> captures all returning the same frame` for the full account.
+
 Benchmarked on the rig, three-channel cycle, warm (2026-08-29):
 
 | Resolution | Current pattern | Grab phase only |
@@ -220,8 +235,9 @@ Two changes, both straightforward:
   with `capture_array()` first, then encode. At 2028 × 1520 this takes the
   window from 0.515 s to 0.452 s; at full resolution 1.180 s → 0.885 s.
 
-**Measured result, 2026-08-29.** Both changes are implemented and verified
-on the rig, timed end-to-end through the daemon's `/capture` endpoint:
+**Measured result, 2026-08-29 — superseded, see the correction above.**
+These were timed end-to-end through the daemon's `/capture` endpoint, but
+against the broken mux routing described in that note:
 
 | Resolution | 3-channel cycle |
 |---|---|

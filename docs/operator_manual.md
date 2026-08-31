@@ -21,15 +21,16 @@ manual is wrong — please tell whoever handed you the gear, and check
 that you're on the latest version (the version line at the top of this
 PDF tells you when it was built).
 
-> **Status — Phase 5b (field-ready).** Capture, gallery, delete,
-> settings, burst, timer, focus mode, and AP-fallback wifi are all
-> live. Storage display + auto-prune (Phase 4c) and screenshot polish
-> (Phase 6) are the only remaining items.
+> **Status — field-ready.** Capture, gallery, delete, settings, burst,
+> timer, focus mode, and AP-fallback wifi all work and have been flown.
+> There is no automatic storage cleanup yet — see the troubleshooting
+> entry on disk space before a long unattended run.
 
 # Quick start
 
-> **Phase 3 caveat.** All three cameras work, but the filters aren't
-> bolted on yet (those mount onto the lens housings, no electronics).
+> **Important — no filters are fitted yet.** All three cameras work,
+> but the narrowband filters have not arrived (they bolt onto the lens
+> housings; there is nothing electrical to connect).
 > Pictures all show the same scene with no spectral difference until
 > filters are installed. The capture pipeline doesn't care — when you
 > bolt the filters on, the science begins automatically.
@@ -238,7 +239,18 @@ automatically, so capturing still works on your next visit.
 
 # Operating the payload in the field
 
-*To be filled in after Phase 5.*
+The payload is one rigid package — cameras, Pi and battery bolted
+together on common standoffs — so it mounts and demounts as a single
+unit. Whatever it is attached to, the routine is the same: power on,
+join the wifi or its `satnet` access point, set exposure for the
+conditions, focus each camera, then capture.
+
+Two things are worth doing every time before you commit to a run:
+
+1. **Take one test capture and look at it.** Exposure that was right
+   yesterday is often wrong today.
+2. **Check the gallery is empty enough** for the number of pictures you
+   plan to take. Nothing deletes old ones for you.
 
 ## On a drone
 
@@ -291,7 +303,7 @@ three:
   end should face the mux PCB. If you can see metal on the wrong side,
   flip it.
 - **If reseating doesn't help:** SSH into the Pi and run
-  `rpicam-hello --list-cameras`. You should see all three IMX477
+  `rpicam-hello --list-cameras`. You should see all three `imx296`
   entries. If one is missing, it's a hardware problem — that camera
   isn't being reached at all.
 

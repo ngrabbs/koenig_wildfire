@@ -48,7 +48,7 @@ the stack-up, the optics, and the power pack — see
 # Pi OS setup
 
 Tested on **Raspberry Pi OS Trixie (Debian 13), 64-bit, Pi 4 (4 GB)**
-as of Phase 2.
+on the current build.
 
 1. **Flash the SD card** with Raspberry Pi Imager. In the imager's
    advanced settings:
@@ -68,7 +68,7 @@ as of Phase 2.
    sudo apt install -y git python3-picamera2 python3-flask \
                        python3-apscheduler i2c-tools device-tree-compiler
    ```
-4. **Enable I²C** (needed for Phase 3 mux — fine to do now):
+4. **Enable I²C** (the camera multiplexer needs it):
    ```bash
    sudo raspi-config nonint do_i2c 0
    sudo reboot
@@ -241,7 +241,8 @@ journalctl -u koenig-daemon -u koenig-webui -n 50 --no-pager
 ```
 
 Then open `http://koenig-pi.local:8000` from a laptop on the same
-network. (Phase 5 adds AP-fallback wifi at `http://192.168.4.1:8000`.)
+network, or via its own `satnet` access point at
+`http://192.168.4.1:8000` when no known wifi is present.
 
 ## Updating the software later
 

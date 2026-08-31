@@ -240,14 +240,19 @@ adapter seating could contribute.
 
 ## Why this matters
 
-The whole measurement is a ratio between channels:
+> **Correction, 2026-08-31.** The 2.5× figure above is not reliable. It
+> came from comparing whole-frame means between cameras that frame
+> slightly different parts of a scene, so it was largely measuring scene
+> content rather than channel gain. Measured properly — same pixels of
+> the same scene, after alignment — the three channels agree to **2.3%**
+> on the IMX296 plate. The concern below is still the right concern; the
+> magnitude was overstated.
 
-$$\text{K-line index} = \frac{S_{766} + S_{770}}{2 \cdot S_{762}}$$
-
-An uncorrected 2.5× gain on the 770 nm channel walks straight into the
-numerator. The payload would report an elevated potassium signature over
-*every* scene, fire or not — and a real fire signal could be swamped or
-faked entirely by an optical artefact.
+The whole measurement is a ratio between channels, so a gain difference
+between them is mathematically indistinguishable from real spectral
+structure. Whatever its true size, it has to be measured against a
+uniform target and divided out — that is what `tools/flat_field.py`
+exists for.
 
 ## What to do about it
 
@@ -284,19 +289,20 @@ Be honest with anyone you hand this to. The following are **not done**:
    K-line ratio math is not being exercised at all.** Filter holder STLs
    are in [`../hardware/stl/`](../hardware/stl/) (`KK_FILTER_HOLDER_MKIII`).
 
-2. **Disk auto-prune is not implemented** (Phase 4c). There is no
+2. **Disk auto-prune is not implemented.** There is no
    disk-usage display and no "keep most recent N captures" pruning. Not
    currently urgent — the rig runs a 117 GB card with 107 GB free, and a
    three-camera capture is about 3.5 MB — but a long unattended timer run
    still has nothing stopping it from filling the card.
 
-3. **The channels are not radiometrically calibrated.** See the section
-   above — cam 2 currently runs ~2.5× hot relative to the other two.
+3. **The channels are not radiometrically calibrated.** They agree to
+   2.3% uncorrected, which is better than first thought, but the
+   correction still has to be derived through the filters once fitted.
 
 4. *(resolved 2026-08-29 — the IMX296 plate is fitted and working.)*
 
-5. **The operator manual is not finalised** (Phase 6). Screenshots and
-   the troubleshooting section are still stubs.
+5. *(resolved 2026-08-31 — the operator manual is complete: seven
+   figures, no remaining placeholders.)*
 
 # Pre-flight checklist
 
@@ -337,9 +343,12 @@ For the incoming capstone team, roughly in order of value:
 1. **Install and validate the narrowband filters.** Nothing about the
    science is proven until this happens. Everything else is secondary.
 
-2. **Fix the channel-to-channel gain mismatch** and build a flat-field
-   calibration step into the workflow. Right now cam 2 reads ~2.5× hot,
-   which is enough to invalidate the ratio measurement on its own.
+2. **Shoot a valid flat and apply the calibration.**
+   `tools/flat_field.py` is written and validated; what is missing is a
+   good flat. Two attempts failed instructively — saturated cloud, and a
+   diffuser touching the lens which over-reported vignetting by 6–37%.
+   Use a distant uniform source and `flat_field.py check` before
+   trusting it.
 
 3. **Fit the IMX296 plate and finish the sensor swap.** The device-tree
    work is **done** (2026-08-29) — `pi/dtoverlay/imx296.dtsi` plus the
@@ -360,7 +369,7 @@ For the incoming capstone team, roughly in order of value:
    endurance figure in this document is measured rather than estimated.
    Power delivery itself is already proven clean (`get_throttled=0x0`).
 
-6. **Implement disk-usage display and auto-prune** (Phase 4c) so a long
+6. **Implement disk-usage display and auto-prune** so a long
    timer run can't silently fill the card.
 
 ## Known limitation to design around

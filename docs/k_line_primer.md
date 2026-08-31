@@ -2,8 +2,8 @@
 
 ## Purpose
 
-This is a short, undergraduate-friendly explanation of *why* the centisat
-payload uses three narrowband NIR filters near 762 / 766 / 770 nm to
+This is a short, undergraduate-friendly explanation of *why* the Koenig
+Wildfire payload uses three narrowband NIR filters at 750 / 770 / 780 nm to
 detect wildfires from orbit. Read this before working on the payload
 optics, the image-processing pipeline, or the ML side. It is not a
 literature review — it's the minimum physics you need to talk
@@ -85,34 +85,44 @@ where K *doesn't* emit. If something is bright at the K lines but
 *not* in the off-line reference, it's K emission. If it's bright in
 both, it's just a generally bright thing — not a fire.
 
-Centisat uses three narrowband channels:
+This payload uses three narrowband channels, each 10 nm wide:
 
 | Filter | Wavelength | What it sees | Role |
 |---|---|---|---|
-| Camera #0 | 766 nm | K I emission line #1 (766.49 nm) | "On-line" — high when K is emitting |
-| Camera #1 | 770 nm | K I emission line #2 (769.90 nm) | "On-line" — high when K is emitting |
-| Camera #2 | 762 nm | Off-line reference (no K line here) | "Off-line" — baseline brightness from non-K sources |
+| Camera #0 | 750 nm | Continuum only — no K emission here | Reference, **below** the line |
+| Camera #1 | 770 nm | Both K I lines (766.49 and 769.90 nm) plus continuum | **On-line** — rises when K is emitting |
+| Camera #2 | 780 nm | Continuum only — no K emission here | Reference, **above** the line |
 
-Two on-line channels (not one) because:
-- The two K I lines have slightly different intensity ratios at different
-  flame temperatures — having both gives a redundancy check and a
-  temperature estimator.
-- It improves SNR — we're averaging two independent K-emission samples.
-- If one camera has a hot pixel or filter contamination, the other can
-  flag the inconsistency.
+This is a **bracketing** design: the two reference channels sit either
+side of the emission, not both on one side. That matters because the
+continuum — reflected sunlight, thermal glow, whatever else the scene is
+doing — is not flat with wavelength. With references on both sides you
+can *interpolate* what the continuum is doing underneath the line and
+subtract it. With a single reference you have to assume the continuum at
+the reference wavelength equals the continuum at the line, which is an
+assumption you cannot check.
+
+A 10 nm filter at 770 nm captures **both** K I lines together, since they
+are only 3.4 nm apart. We do not resolve them separately and do not need
+to — we need to know how much light the pair emits, not how it divides
+between them.
 
 ## 5. The detection algorithm — first principles
 
 For every pixel in the registered three-channel image, compute:
 
+First interpolate the continuum at 770 nm from the two references. Since
+770 sits two-thirds of the way from 750 to 780:
+
 ```
-fire_index(pixel) = (signal_766 + signal_770) / (2 × signal_762)
+continuum_770 = (1/3) × signal_750  +  (2/3) × signal_780
+fire_index(pixel) = signal_770 / continuum_770
 ```
 
-- **No fire:** all three channels see roughly the same reflected sunlight
-  spectrum across the small ~10 nm window. Ratio ≈ 1.
-- **Fire present:** the K emission adds signal to the 766 and 770 channels
-  but does *not* affect 762. Ratio rises above 1.
+- **No fire:** the 770 channel sees only continuum, which is what the
+  interpolation predicts. Ratio ≈ 1.
+- **Fire present:** K emission adds signal at 770 that the continuum
+  cannot account for. Ratio rises above 1.
 - **Threshold:** declare "candidate fire pixel" when ratio exceeds some
   empirically chosen threshold (probably 1.3–2.0; this will need to be
   calibrated against ground-truth data).
@@ -120,27 +130,31 @@ fire_index(pixel) = (signal_766 + signal_770) / (2 × signal_762)
 This is Stage 1. It's pixel-wise, runs in microseconds, and rejects most
 of the obvious false positives (anything broadband-bright).
 
-## 6. A small atmospheric bonus from picking 762 nm
+## 6. Why the references moved away from 762 nm
 
-The 762 nm reference happens to land on the edge of the **O~2~ A-band**,
-an atmospheric oxygen absorption feature centered around 761 nm. This
-means at 762 nm, reflected sunlight gets attenuated by O~2~ in the column
-of air between the ground and the satellite.
+An earlier version of this payload used 762 nm as its off-line reference.
+That wavelength sits inside the **O₂ A-band**, an atmospheric oxygen
+absorption feature spanning roughly 759–771 nm. Reflected sunlight at
+762 nm is attenuated by oxygen in the air between the scene and the
+camera, and by an amount that changes with path length — so it varies
+with altitude, viewing angle and air mass.
 
-This doesn't help Stage 1 detection directly (we're computing a ratio,
-which mostly cancels common-mode atmospheric effects). But it does
-provide a useful side-channel:
+For a reference channel that is a problem. The reference is supposed to
+tell you what the continuum is doing, and a reference whose own
+transmission moves with the atmosphere adds a term to the ratio that has
+nothing to do with fire.
 
-- During the day, the 762 channel sees mostly Rayleigh-scattered sky
-  light, with very little contribution from ground reflection.
-- This makes the 762 channel a *cleaner* reference than picking
-  something like 750 nm or 800 nm would have been.
-- It also gives us a free atmospheric-correction signal if we ever want
-  to estimate path-integrated O~2~ column density.
+750 nm and 780 nm both sit **outside** the A-band, so both references
+measure the continuum without that contamination. The on-line channel at
+770 nm is still partly inside the band — unavoidable, since that is where
+potassium emits — but the correction is now interpolated from two clean
+references rather than one contaminated one.
 
-In short: the 762 nm choice is good, but for subtler reasons than just
-"it's between the K lines." Future filter selection should keep this
-property in mind.
+> **A note on scale.** This document was originally written for a
+> satellite, where the whole atmospheric column sits in the path. On a
+> drone at a few tens of metres the O₂ absorption is much smaller. The
+> reasoning still holds, and it costs nothing to keep the references
+> clear of the band.
 
 ## 7. What this technique does *not* do
 
