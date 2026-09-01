@@ -36,6 +36,92 @@ ratio per pixel.
 > channels — not a larger image. Getting this distinction wrong sends you
 > after panorama libraries that solve a problem we do not have.
 
+# How the alignment actually works
+
+Worth stating plainly, because it is easy to assume a different method.
+
+**We do not identify landmarks.** Nothing looks for the stakes, the H on the
+landing pad, or any other feature. The method is *phase correlation*: take
+the Fourier transform of both frames, form the normalised cross-power
+spectrum, transform back, and the location of the peak is the translation
+that best aligns them. It uses every pixel in the frame at once and returns
+one (dx, dy) per channel pair, to sub-pixel precision.
+
+The reason to prefer it here is that it needs no landmarks. A fire in open
+scrub has no stakes in it, and a method that depends on recognisable objects
+stops working exactly where the instrument is supposed to work.
+
+## The geometric model, and why it is justified
+
+The assumption is that the three cameras have parallel lines of sight and
+equal magnification, so the images differ by a translation and nothing else.
+That is an assumption, so it was measured:
+
+| | cam1 → cam0 | cam2 → cam0 |
+|---|---|---|
+| Rotation | −0.03° | −0.11° |
+| Scale | 1.003 | 1.007 |
+
+Both negligible. A translation is the right model.
+
+## The offsets are not fixed, and that is the whole difficulty
+
+If the cameras are rigid and the scene is far away, the offset between
+channels should be a constant — measure it once, apply it forever. Measured
+across 30 usable airborne triplets, that is *nearly* true:
+
+- **23 of 30 needed no correction at all**, typical residual 0.1–0.8 px. At
+  range, with the aircraft momentarily still, the three channels land on top
+  of each other to a fraction of a pixel. The cameras are well aligned.
+- **7 of 30 needed a large correction**, 100 to 790 px.
+
+The large ones are not a property of the cameras. They are captures where
+the aircraft moved during the sequence: the multiplexer can only address one
+sensor at a time, so the three channels are exposed about two seconds apart,
+and anything the platform does in that window displaces them.
+
+This is why the shift is estimated per capture rather than calibrated once.
+A fixed calibration would be correct for the 23 and badly wrong for the 7,
+with no way to tell which is which from the image alone.
+
+## Extracting the overlap
+
+After each channel is shifted onto the reference, the frames are cropped to
+the rectangle that is valid in all three — the region where every channel
+has real data rather than the blank edge left behind by shifting. That crop
+is the only region where the index can be computed, and it is what the tool
+writes out.
+
+At range the crop costs almost nothing, because the offsets are almost zero.
+On the worst airborne triplets it removes about 30% of the frame. Close in,
+it costs more, because parallax from the 40 mm baseline is real at a metre.
+
+## Where this method stops working
+
+Phase correlation returns one translation for the whole frame. That is
+correct when everything is at roughly the same distance, and wrong when it
+is not: nearer objects shift more than distant ones, and no single
+translation satisfies both. Searching exhaustively for the best possible
+shift shows the limit clearly —
+
+| Scene | Best achievable single-shift alignment |
+|---|---|
+| Foliage about 1 m away | NCC 0.483 |
+| Ground from the drone, 15–20 ft | NCC 0.926 |
+
+— and it is a property of the geometry, not of the estimator. For
+close-range work the practical answer is to keep the subject and its
+backdrop at similar distance, which the burn setup already does.
+
+## A landmark method would still be useful
+
+Not as a replacement, but as an independent check. Imaging a target with
+recognisable points at a known distance would let the fixed camera-to-camera
+geometry be measured directly and compared against what phase correlation
+reports, which would confirm the co-boresighting result above by a second
+route. The landing-pad H and the stakes are exactly the sort of features
+that would serve.
+
 # What we measured
 
 Feature matching (ORB + RANSAC, CLAHE-normalised) across all 40 complete

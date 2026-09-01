@@ -293,10 +293,21 @@ trigger they expose simultaneously, which does not merely reduce the
 inter-channel displacement but eliminates it, and with it the need for
 per-triplet registration on a moving platform. This has not been attempted.
 
-**Boresight alignment.** One camera points roughly 120 px higher than the
-others, beyond what parallax explains. After cropping to the common region
-this costs about 25% of the sensor area. It is a mechanical adjustment to the
-plate, not something software can recover.
+**Boresight alignment — measured, and it is good.** An earlier version of
+this document claimed one camera pointed about 120 px off and that cropping
+to the common region cost a quarter of the sensor. That was wrong. The
+figure came from bench captures a metre away, where the offset is parallax
+from the 40 mm baseline, not a mounting error.
+
+Measured at distance, where parallax collapses, the three cameras are
+co-boresighted to a fraction of a pixel. Across 30 usable airborne triplets,
+**23 needed no correction at all** — typical residual 0.1 to 0.8 px. The
+seven that did need one needed a large one (100–790 px), and those are
+captures where the aircraft moved during the sequence.
+
+So the fixed geometry is not the problem, and the common overlap at range is
+essentially the full frame. The only thing displacing the channels is
+platform motion during the ~2 s capture cycle.
 
 **Flight radio link.** During the August flight the WiFi control link became
 unusable as soon as the aircraft gained altitude. Ground testing at range is
@@ -324,7 +335,5 @@ needed to separate antenna blockage from interference.
    whole premise.
 3. **Investigate hardware-triggered simultaneous capture.** Would remove the
    dominant error source on a moving platform.
-4. **Correct the boresight offset** on the camera plate to recover the lost
-   frame area.
 5. **Characterise the radio link** on the ground at range before the next
    flight.

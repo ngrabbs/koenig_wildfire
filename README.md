@@ -229,6 +229,5 @@ Roughly in order of value to the project:
 3. Investigate hardware-triggered simultaneous capture — these camera modules
    have trigger and strobe pins, which would remove the dominant error source
    on a moving platform.
-5. Correct the ~120 px boresight offset on the camera plate.
 6. Characterise the wifi link range on the ground; it became unusable at
    altitude during the August flight.
