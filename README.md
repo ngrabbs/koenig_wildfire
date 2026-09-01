@@ -27,7 +27,7 @@ New to the project? Read in this order:
 
 1. **[`docs/pipeline_review.md`](docs/pipeline_review.md)** — what the
    instrument does today, stage by stage, with real captures. The best single
-   overview. (`make review-pdf`)
+   overview.
 2. **[`docs/k_line_primer.md`](docs/k_line_primer.md)** — why potassium, and
    why these wavelengths.
 3. **[`docs/payload_build.md`](docs/payload_build.md)** — the physical
@@ -193,24 +193,11 @@ frame with it, and keep it far enough away to be out of the near field.
 | `pi/systemd/` | Unit files for auto-start on boot |
 | `pi/tests/` | Tests. No hardware needed. |
 | `tools/` | Ground-station analysis: registration, flat-field, PDF rendering |
-| `docs/` | All documentation, markdown → PDF via pandoc |
+| `docs/` | All documentation. Read it on GitHub — the diagrams and maths render there |
 | `hardware/` | Filter-holder STLs and SolidWorks sources |
 | `assets/` | Build photos from the earlier hardware generations |
 | `legacy/` | Archived pre-rewrite code (see `legacy/README.md`) |
 
-## Building the documentation
-
-Every document renders to PDF through pandoc with a mermaid preprocessor:
-
-```bash
-make review-pdf      # the pipeline review — the best overview
-make pdf             # the operator manual
-make all-pdfs        # everything
-make help            # list the targets
-```
-
-Requires `pandoc`, `lualatex`, and `pip install mermaid-py`. Output lands in
-`docs/build/`, which is gitignored.
 
 ## Hardware generations
 

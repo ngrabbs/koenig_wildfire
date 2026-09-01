@@ -1,10 +1,8 @@
----
-title: "Payload and Processing Review"
-subtitle: "What the instrument does today, stage by stage, with worked examples"
-date: "2026-08-30"
----
+# Payload and Processing Review
 
-# Purpose of this document
+*What the instrument does today, stage by stage, with worked examples · 2026-08-30*
+
+## Purpose of this document
 
 This walks through the payload as it stands and the processing chain behind
 it, one stage at a time, showing what goes into each stage and what comes
@@ -18,7 +16,7 @@ scene through no filters at all. That is deliberate — it is the only
 condition under which the instrument can be checked against a known answer,
 and that opportunity disappears the moment the filters go on.
 
-# Where the payload stands
+## Where the payload stands
 
 The imaging hardware is complete and working. Three **Sony IMX296**
 global-shutter monochrome cameras (InnoMaker CAM-IMX296RAW), 1456 × 1088,
@@ -43,7 +41,7 @@ no device-tree support for an IMX296 behind a camera multiplexer, so that
 had to be written. It now works, and all three cameras enumerate and capture
 reliably.
 
-# The processing chain
+## The processing chain
 
 ```mermaid
 flowchart LR
@@ -62,7 +60,7 @@ the correction map describes the sensor's own pixels, so it has to be applied
 while the frame is still in sensor coordinates. Registration moves the image,
 and after that the map no longer lines up with what it describes.
 
-# Stage 1 — Capture
+## Stage 1 — Capture
 
 **In:** an operator clicking Capture, or a timer.
 **Out:** three JPEGs, one per camera, sharing a capture-event timestamp.
@@ -90,7 +88,7 @@ discussed under [What is not solved](#what-is-not-solved).
 > installed; until then, any analysis treating these as spectral channels
 > will produce nonsense.
 
-# Stage 2 — Flat-field correction
+## Stage 2 — Flat-field correction
 
 **In:** raw frames, plus a calibration built from a flat capture (uniform
 featureless target) and a dark capture (lens caps on).
@@ -119,7 +117,7 @@ dark offsets, and a vignetting profile — it recovered them exactly:
 
 with residual scatter equal to the injected noise — no systematic error left.
 
-## Two honest findings from calibrating the real instrument
+### Two honest findings from calibrating the real instrument
 
 **The channels already agree to about 2%.** Measured on the same pixels of
 the same scene, the three cameras read 109.8, 111.8 and 109.3 — a 2.3%
@@ -143,7 +141,7 @@ reasonable substitute, and is what D. Koenig's group uses. The correction has to
 anyway, since filter transmission varies unit to unit and will not cancel the
 way matched lenses do.
 
-# Stage 3 — Channel registration
+## Stage 3 — Channel registration
 
 **In:** three corrected frames from one capture event.
 **Out:** three frames on a common pixel grid, cropped to the region visible
@@ -165,7 +163,7 @@ justified for imaging at range: measured rotation between channels is about
 was 160 px and it lifted the correlation between the two channels from 0.74
 to **0.98**.
 
-## Where a single translation is not enough
+### Where a single translation is not enough
 
 It only works when everything in the scene is at roughly the same distance.
 The cameras are 40 mm apart, so nearer objects shift more between channels
@@ -193,7 +191,7 @@ Each fit is reported with a before-and-after correlation score so it shows
 its own work, and frames too washed out or too featureless to align
 reliably are flagged rather than silently accepted.
 
-# Stage 4 — K-line index
+## Stage 4 — K-line index
 
 **In:** an aligned, corrected triplet.
 **Out:** one number per pixel — the potassium line strength — as a map, plus
@@ -238,7 +236,7 @@ removed exactly — and the 99th percentile **+0.293**, recovering the injected
 signal. That is precisely the case a single off-line reference gets wrong and
 bracketing gets right.
 
-# How this compares with the Resonon
+## How this compares with the Resonon
 
 The Pika XC2 is a true imaging spectrometer: hundreds of contiguous bands at
 roughly 1–2 nm resolution, which is why it resolves the potassium doublet as
@@ -268,7 +266,7 @@ valuable measurement available to this project**, and it is worth arranging
 before anything else on the list below. It is the experiment that either
 supports the thesis or does not.
 
-## The risk worth stating up front
+### The risk worth stating up front
 
 The potassium lines are intrinsically narrow — well under a nanometre even
 with broadening in a flame. A spectrometer at 1–2 nm resolution concentrates
@@ -282,7 +280,7 @@ modest percentage excess in the 770 nm channel, not an obvious spike — and it
 is why the calibration work above matters as much as it does. A 2% channel
 error is tolerable against that signal; a 35% one would not be.
 
-# What is not solved
+## What is not solved
 
 **Capture is sequential, and slow.** About 2 seconds for all three channels.
 On a moving aircraft the scene shifts between them, which is what registration
@@ -316,7 +314,7 @@ platform motion during the ~2 s capture cycle.
 unusable as soon as the aircraft gained altitude. Ground testing at range is
 needed to separate antenna blockage from interference.
 
-# Status summary
+## Status summary
 
 | Item | State |
 |---|---|
@@ -330,7 +328,7 @@ needed to separate antenna blockage from interference.
 | Fire response | **not tested — no filters** |
 | Simultaneous capture via hardware trigger | not attempted |
 
-# Next steps, in order of value
+## Next steps, in order of value
 
 1. **Fit the filters and re-derive the flat-field calibration through them.**
    Nothing about the science is demonstrated until this happens.

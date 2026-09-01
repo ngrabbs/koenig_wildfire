@@ -1,10 +1,8 @@
----
-title: "Payload Build"
-subtitle: "The physical stack: plates, cameras, optics, power, and what's still missing"
-date: "2026-08-28 — as-flown build"
----
+# Payload Build
 
-# What this document is
+*The physical stack: plates, cameras, optics, power, and what's still missing · 2026-08-28 — as-flown build*
+
+## What this document is
 
 This is the **physical** description of this payload: what
 the parts are, how they stack, why they're arranged that way, and what is
@@ -21,7 +19,7 @@ know *why we image potassium*, read [`k_line_primer.md`](k_line_primer.md).
 > filters are not installed** — see [What is not built yet](#what-is-not-built-yet).
 > Every image captured so far is broadband, not K-line.
 
-# The payload at a glance
+## The payload at a glance
 
 ![The payload in three pieces. Left: battery enclosure lid. Middle: battery enclosure base with the 10 000 mAh pack seated. Right: the Pi 4 with the Arducam v2.2 multi-camera board on the GPIO header, standing on the standoffs that tie the whole stack together.](img/payload1.jpg)
 
@@ -37,7 +35,7 @@ object with no loose cabling between parts.
 | Compute | Raspberry Pi 4 + Arducam Multi Camera Adapter v2.2 (HAT) | COTS, on standoffs |
 | Power | Battery enclosure — base + vented lid | 3D print, screws into the same standoffs |
 
-## Stack-up
+### Stack-up
 
 ```mermaid
 flowchart TB
@@ -64,13 +62,13 @@ flowchart TB
 
 Everything is structurally connected. Nothing hangs on a cable.
 
-# The camera plates
+## The camera plates
 
 **There are two camera plates, and they are not interchangeable.** This
 is the single most confusing thing about the payload for a newcomer, so
 read this section before touching hardware.
 
-## Flight plate — Raspberry Pi HQ / IMX477
+### Flight plate — Raspberry Pi HQ / IMX477
 
 ![Bottom of the flight plate, looking into the three lenses. Note the printed white collars that hold each lens in its bore. The lens at lower-right still has its cap on.](img/payload3.jpg)
 
@@ -103,7 +101,7 @@ blocker is fitting the plate, not software. Original reasoning in
 [`architecture.md`](architecture.md) and
 [`../pi/dtoverlay/README.md`](../pi/dtoverlay/README.md).
 
-## Monochrome plate — IMX296 (working as of 2026-08-29)
+### Monochrome plate — IMX296 (working as of 2026-08-29)
 
 ![The monochrome plate, sensor side. Three cameras with lens caps on.](img/payload4.jpg)
 
@@ -136,7 +134,7 @@ The modules are InnoMaker **CAM-IMX296RAW**, self-clocked from an onboard
 > potential answer to the biggest open problem on this payload — see
 > [`flight_findings.md`](flight_findings.md).
 
-## Focus mechanism — the mono plate is better
+### Focus mechanism — the mono plate is better
 
 This is worth recording because it will drive a future design decision.
 
@@ -161,7 +159,7 @@ has moved.
 Use the web UI's live focus mode (see the operator manual) to set focus,
 and re-check all three cameras after transport, before every flight.
 
-# Power
+## Power
 
 ![Underside of the battery pack, showing the ratings label.](img/payload2.jpg)
 
@@ -183,7 +181,7 @@ minus conversion losses, expect **roughly 4–6 hours** of field operation.
 That is an estimate from the label — the throttling result is measured,
 the runtime figure is not. Someone should time an actual discharge.
 
-# As-configured capture settings
+## As-configured capture settings
 
 Read off the live rig (`~/.payload/settings.json`) on 2026-08-28:
 
@@ -213,7 +211,7 @@ Captures land in `~/payload_images/` on the Pi, named
 > Anyone analysing this data without knowing that will produce nonsense.
 > Treat all pre-filter captures as engineering data only.
 
-# Open issue — the three channels are not radiometrically matched
+## Open issue — the three channels are not radiometrically matched
 
 **This is the most important open problem on the payload, and it is not
 a software bug.**
@@ -238,7 +236,7 @@ The likely cause is the **manual iris on cam 2's M12 lens being set
 wider** than the other two, though sensor-to-sensor variation and
 adapter seating could contribute.
 
-## Why this matters
+### Why this matters
 
 > **Correction, 2026-08-31.** The 2.5× figure above is not reliable. It
 > came from comparing whole-frame means between cameras that frame
@@ -254,7 +252,7 @@ structure. Whatever its true size, it has to be measured against a
 uniform target and divided out — that is what `tools/flat_field.py`
 exists for.
 
-## What to do about it
+### What to do about it
 
 1. **Short term — check the irises.** If the M12 lenses have adjustable
    apertures, match them by eye and re-shoot the flat target until the
@@ -276,7 +274,7 @@ exists for.
 **A flat-field capture is cheap — one shot of a blank wall.** It is worth
 taking one before and after every flight day.
 
-# What is not built yet
+## What is not built yet
 
 Be honest with anyone you hand this to. The following are **not done**:
 
@@ -304,7 +302,7 @@ Be honest with anyone you hand this to. The following are **not done**:
 5. *(resolved 2026-08-31 — the operator manual is complete: seven
    figures, no remaining placeholders.)*
 
-# Pre-flight checklist
+## Pre-flight checklist
 
 Run this every time, in order. It is short on purpose.
 
@@ -336,7 +334,7 @@ Run this every time, in order. It is short on purpose.
       drone workflow is: start a timer capture on the ground, fly the
       pattern, land, then review — do not try to fly *and* operate the UI.
 
-# Next hardware tasks
+## Next hardware tasks
 
 For the incoming capstone team, roughly in order of value:
 
@@ -372,7 +370,7 @@ For the incoming capstone team, roughly in order of value:
 6. **Implement disk-usage display and auto-prune** so a long
    timer run can't silently fill the card.
 
-## Known limitation to design around
+### Known limitation to design around
 
 The Arducam v2.2 is a CSI **switch**, not a true multiplexer — the Pi
 sees one camera at a time, so the three channels are captured

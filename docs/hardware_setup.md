@@ -1,10 +1,8 @@
----
-title: "Hardware Setup"
-subtitle: "First-boot Pi configuration, wiring, and bring-up checks"
-date: "Version 1.0 — 31 August 2026 · for payload v0.3"
----
+# Hardware Setup
 
-# Audience and scope
+*First-boot Pi configuration, wiring, and bring-up checks · Version 1.0 — 31 August 2026 · for payload v0.3*
+
+## Audience and scope
 
 This document is for whoever is **assembling a fresh payload**. By the
 end you should have a Pi that:
@@ -23,7 +21,7 @@ the stack-up, the optics, and the power pack — see
 > checks, software install, and AP-fallback wifi are documented and
 > tested end-to-end on Trixie + Pi 4 + IMX296 + v2.2 mux.
 
-# Parts list
+## Parts list
 
 | Part | Quantity | Notes |
 |---|---|---|
@@ -46,7 +44,7 @@ the stack-up, the optics, and the power pack — see
 | Adafruit USB battery pack, 10 000 mAh / 37 Wh, 2 × 5 V | 1 | Field/flight power. Watch for under-voltage — see `payload_build.md` |
 | MicroSD card (32 GB +) | 1 | Boot disk |
 
-# Pi OS setup
+## Pi OS setup
 
 Tested on **Raspberry Pi OS Trixie (Debian 13), 64-bit, Pi 4 (4 GB)**
 on the current build.
@@ -78,7 +76,7 @@ on the current build.
    with `grep camera_auto_detect /boot/firmware/config.txt` — should
    show `camera_auto_detect=1` uncommented.
 
-# Wiring
+## Wiring
 
 The Arducam v2.2 is a **HAT** — it mounts on the Pi's 40-pin GPIO
 header and gets I²C (SDA/SCL on pins 3/5), the three GPIO mux select
@@ -134,7 +132,7 @@ symptom — sensors enumerate over i2c but every capture times out:
 - **Ribbon orientation at any of the four connectors.** See the note
   above; a ribbon in backwards fails silently rather than obviously.
 
-# dtoverlay configuration
+## dtoverlay configuration
 
 Stock Pi OS Trixie ships `camera-mux-4port.dtbo`, designed for newer
 Arducam multi-camera HATs. The **v2.2 board wires the PCA9544 I²C
@@ -180,7 +178,7 @@ See [`pi/dtoverlay/README.md`](../pi/dtoverlay/README.md) for the patch,
 the clock requirement, and what to check if the sensors probe over i2c
 but never deliver a frame.
 
-# Bring-up checks
+## Bring-up checks
 
 After plugging everything in, booting, building the dtoverlay, and
 rebooting, run these in order:
@@ -222,7 +220,7 @@ rebooting, run these in order:
 
 If all four pass, the payload is assembled correctly.
 
-# Installing the software
+## Installing the software
 
 ```bash
 mkdir -p ~/code && cd ~/code
@@ -245,7 +243,7 @@ Then open `http://payload-pi.local:8000` from a laptop on the same
 network, or via its own `satnet` access point at
 `http://192.168.4.1:8000` when no known wifi is present.
 
-## Updating the software later
+### Updating the software later
 
 ```bash
 cd ~/code/koenig_wildfire
@@ -253,7 +251,7 @@ git pull
 sudo systemctl restart payload-daemon payload-webui
 ```
 
-# Wifi configuration (AP fallback)
+## Wifi configuration (AP fallback)
 
 The Pi joins your known wifi networks first. If none are reachable
 (field site with no infrastructure), it falls back to broadcasting
@@ -261,7 +259,7 @@ its own WPA2 access point named **`satnet`** (password **`cubesat1`**)
 at **`192.168.4.1`**. The operator's laptop joins that and reaches
 the UI at `http://192.168.4.1:8000`.
 
-## Install
+### Install
 
 ```bash
 sudo bash pi/network/install-ap-fallback.sh
@@ -280,7 +278,7 @@ sudo SSID=my-ap PASSWORD=longerthan8chars AP_IP=10.42.0.1 \
      bash pi/network/install-ap-fallback.sh
 ```
 
-## Add a "known" wifi network
+### Add a "known" wifi network
 
 The first time you receive a Pi, give it the wifi network(s) it should
 prefer. SSH in and:

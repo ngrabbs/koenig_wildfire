@@ -1,10 +1,8 @@
----
-title: "Flight Findings — TL-002"
-subtitle: "Cubesat@MSU"
-date: "Version 1.0 — 1 September 2026 · for payload v0.3"
----
+# Flight Findings — TL-002
 
-# What this document is
+*Cubesat@MSU · Version 1.0 — 1 September 2026 · for payload v0.3*
+
+## What this document is
 
 What the 2026-08-29 drone flight taught us about the instrument, and the
 decisions that came out of it. It exists so the reasoning behind the current
@@ -17,7 +15,7 @@ It does not explain how channel alignment works. That moved to
 and a worked example, with a practical guide in
 [`alignment_walkthrough.md`](alignment_walkthrough.md).
 
-# Root cause: the capture cycle is too slow
+## Root cause: the capture cycle is too slow
 
 > **Correction, 2026-08-31 — the timings in this section are invalid.**
 > Every cycle-time number below was measured while a separate bug was
@@ -64,7 +62,7 @@ resolution — that is pipeline fill after `start()`. We cannot avoid the
 stop/start cycle because the Arducam v2.2 is a CSI *switch*: only one camera
 can be streaming at a time.
 
-# Exposure: most of the flight data is clipped
+## Exposure: most of the flight data is clipped
 
 Separate finding from the same data set, and it matters more than
 registration does.
@@ -91,7 +89,7 @@ being chased down in the field over the session — 50 ms → 4.97 ms → 2.49 m
 This also explains why registration succeeded on only 25 of 40 triplets:
 a clipped frame has no gradient left to match against.
 
-## Two consequences
+### Two consequences
 
 **For the burn test, expose for the flame, not the landscape.** The flame is
 the brightest thing in the frame and it is the thing being measured. A
@@ -105,7 +103,7 @@ are fitted. That loops straight back into registration: at 50–100 ms on a
 moving aircraft you get motion blur *within* each frame on top of
 displacement *between* frames.
 
-# Filters — ordered 2026-08-29
+## Filters — ordered 2026-08-29
 
 Thorlabs hard-coated bandpass, Ø25 mm, **10 nm FWHM** each:
 
@@ -131,11 +129,11 @@ described elsewhere in the repo. Two changes follow from it:
 > (TL-002 Action 2) so that the label change and the optical change land
 > together and no data set is ambiguous about which it is.
 
-# What we are going to do, and why
+## What we are going to do, and why
 
 In priority order.
 
-### 1. Cut the capture cycle time
+#### 1. Cut the capture cycle time
 
 **Why first:** it attacks the root cause rather than compensating for it.
 Every millisecond removed from the inter-channel window is displacement that
@@ -182,7 +180,7 @@ attacking yet (see the table below).
 > explicitly. Any other unit needs the same change, from the settings page
 > or by deleting the stored resolution key.
 
-### 2. Register per triplet, not once
+#### 2. Register per triplet, not once
 
 **Why:** a fixed calibration cannot work while platform motion dominates the
 offset. The transform has to be estimated from each triplet's own content.
@@ -224,13 +222,13 @@ Run against the TL-002 flight set: **20 registered, 20 low-confidence, 1
 incomplete** of 41 events. The low-confidence half is the clipped data — which
 is the exposure problem above, surfacing again as an inability to register.
 
-### 3. Operational: capture in a hover
+#### 3. Operational: capture in a hover
 
 Costs nothing, available immediately, and directly reduces the displacement
 the aligner has to solve. Start a timer capture, hover over the target, land.
 Do not fly a translating pass and expect clean triplets.
 
-# What we are deliberately not doing
+## What we are deliberately not doing
 
 | Not doing | Why |
 |---|---|
@@ -241,7 +239,7 @@ Do not fly a translating pass and expect clean triplets.
 | Lens distortion correction | Not yet measured, and swamped by everything above. Revisit after the cycle-time and exposure work, if residual misalignment justifies it. |
 | Chasing the 135 ms/channel floor | That is pipeline fill after `start()`, and the CSI switch forbids keeping more than one camera streaming. Not worth attacking until the rest is done. |
 
-# Open questions
+## Open questions
 
 - **Does the aligner survive real spectral differences?** Everything measured
   here is broadband — all three channels saw the same light. Once filters are
@@ -252,7 +250,7 @@ Do not fly a translating pass and expect clean triplets.
   hover captures against translating-pass captures would quantify it.
 - **Is 0.45 s good enough?** Unknown until we fly it.
 
-# Update 2026-08-29 — both remaining levers just became available
+## Update 2026-08-29 — both remaining levers just became available
 
 The two fallbacks named above were written when the IMX296 could not run
 through the mux at all. That is no longer true, and it changes the outlook

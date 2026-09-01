@@ -1,10 +1,8 @@
----
-title: "Channel Alignment — Method"
-subtitle: "Cubesat@MSU"
-date: "Version 1.0 — 1 September 2026 · for payload v0.3"
----
+# Channel Alignment — Method
 
-# Why alignment is needed at all
+*Cubesat@MSU · Version 1.0 — 1 September 2026 · for payload v0.3*
+
+## Why alignment is needed at all
 
 The K-index is evaluated **per pixel**:
 
@@ -24,7 +22,7 @@ straight out of the camera, for two reasons:
 Alignment removes both, and then the region where all three overlap is the
 only region where the index is defined.
 
-# The geometric model
+## The geometric model
 
 We assume the three images differ by a **translation only** — that the lines
 of sight are parallel and the magnifications equal. That is an assumption, so
@@ -44,13 +42,13 @@ would fit noise rather than signal.
 
 So for each channel $c$ we need one vector $(\Delta x_c, \Delta y_c)$.
 
-# How the translation is estimated
+## How the translation is estimated
 
 **Not by identifying features.** Nothing in the pipeline looks for the stakes,
 the H on the landing pad, or any other landmark. The method is *phase
 correlation*, which uses every pixel at once.
 
-## The mathematics
+### The mathematics
 
 Let $f_0$ be the reference channel and $f_c$ another, and suppose they differ
 by a pure translation:
@@ -84,7 +82,7 @@ exposures — but it is a sharp peak on a flat floor.
 
 ![The correlation surface for a real capture. Left: the whole search range — one peak, everything else at the noise floor. Right: the same peak magnified. Its offset from the centre is the translation between the two channels.](img/align_corr_surface.png)
 
-## Why normalise the magnitude
+### Why normalise the magnitude
 
 Dividing by $|F_0 \overline{F_c}|$ is what makes this robust for our case.
 It discards how *much* signal there is at each frequency and keeps only
@@ -94,7 +92,7 @@ produces the same phase ramp. The estimate is therefore insensitive to
 exactly the per-channel gain differences the flat-field stage exists to
 correct — the two stages do not have to be perfect for the other to work.
 
-## Practical details
+### Practical details
 
 - **Windowing.** The transform assumes the image repeats periodically, so the
   discontinuity at the frame edge injects a cross-shaped artefact. A Hann
@@ -109,7 +107,7 @@ correct — the two stages do not have to be perfect for the other to work.
   centroid of a small neighbourhood around the maximum, giving a fractional
   estimate rather than an integer one.
 
-# A worked example
+## A worked example
 
 Capture `20260829_120138_954`, taken from the drone at roughly 15–20 ft:
 
@@ -129,7 +127,7 @@ not misalignment — it is a genuine difference in what that channel recorded.
 
 ![Left to right in each row: the same pixel box in two channels. Top, unaligned. Bottom, after the 160 px correction — the diagonal path and the bright patch now coincide.](img/rev_registration.jpg)
 
-# Extracting the overlap
+## Extracting the overlap
 
 Once each channel has been shifted onto the reference, the frames no longer
 cover the same rectangle: shifting leaves an invalid strip along the edges
@@ -148,7 +146,7 @@ computed.
 
 ![The three frames after shifting. The shaded rectangle is the region present in all three — the only place the index can be evaluated.](img/align_overlap.png)
 
-# What this costs in practice
+## What this costs in practice
 
 Measured across 30 usable airborne triplets from the 2026-08-29 flight:
 
@@ -169,7 +167,7 @@ This is why the shift is estimated per capture rather than measured once and
 applied. A fixed calibration would be right for the 23 and badly wrong for
 the 7, and nothing in the image tells you in advance which one you have.
 
-# Where a single translation is not enough
+## Where a single translation is not enough
 
 Two cameras separated by a baseline $B$, with focal length $f$ in pixels,
 viewing a point at distance $Z$, see it displaced by
@@ -211,7 +209,7 @@ close to constant across the frame and a single translation absorbs it. A
 scene with genuine depth variation a metre away would need per-pixel
 registration, which is a different and much heavier method.
 
-# A landmark method as an independent check
+## A landmark method as an independent check
 
 An alternative approach is to identify common points — the H on the landing
 pad, survey stakes — in all three images and solve for the offset from their
@@ -229,7 +227,7 @@ camera-to-camera geometry directly, independently of phase correlation, and
 confirm the co-boresighting result above by a second route. That is worth
 doing once, and the landing pad is a suitable target.
 
-# What the tool produces
+## What the tool produces
 
 `tools/register_triplets.py` takes a directory of captures and writes, per
 capture event:

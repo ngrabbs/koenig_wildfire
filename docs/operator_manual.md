@@ -1,11 +1,8 @@
----
-title: "Operator Manual"
-subtitle: "Cubesat@MSU"
-author: "Nick Grabbs"
-date: "Version 1.0 — 31 August 2026 · for payload v0.3"
----
+# Operator Manual
 
-# About this manual
+*Cubesat@MSU · Nick Grabbs · Version 1.0 — 31 August 2026 · for payload v0.3*
+
+## About this manual
 
 This is the user-facing guide for operating the the payload camera
 payload from a laptop. It assumes:
@@ -26,7 +23,7 @@ PDF tells you when it was built).
 > There is no automatic storage cleanup yet — see the troubleshooting
 > entry on disk space before a long unattended run.
 
-# Quick start
+## Quick start
 
 > **Important — no filters are fitted yet.** All three cameras work,
 > but the narrowband filters have not arrived (they bolt onto the lens
@@ -56,7 +53,7 @@ PDF tells you when it was built).
 
 ![The main page as it looks on first load, before any pictures have been taken.](img/quick_start_homepage.png)
 
-# What this thing does (one paragraph)
+## What this thing does (one paragraph)
 
 The payload takes three pictures of the same scene through three
 different narrowband filters: 762 nm, 766 nm, and 770 nm. Burning
@@ -70,13 +67,13 @@ get the exposure right, and frame the target. The math happens after.
 The full physics is in the K-line primer (separate document) if you're
 curious.
 
-# Interface walkthrough
+## Interface walkthrough
 
 Everything the operator needs is on one page. There is no menu and no
 login — open the address in a browser and the whole interface is in
 front of you.
 
-## The main page
+### The main page
 
 ![The main page with every control labelled. The numbers match the table below.](img/main_page_annotated.png)
 
@@ -91,9 +88,9 @@ front of you.
 The filename of each picture is its UTC timestamp:
 `YYYYMMDD_HHMMSS_mmm.jpg`. Sort order in the gallery is newest first.
 
-## Capturing pictures
+### Capturing pictures
 
-### Single capture
+#### Single capture
 
 Click the blue **Capture** button. After about **8 seconds** the
 gallery refreshes with three new pictures on top — one per channel,
@@ -109,7 +106,7 @@ way around the sequential timing without different hardware.
 If the page seems to hang past 15 seconds, something's wrong — see
 the troubleshooting section.
 
-### Burst capture
+#### Burst capture
 
 Open the **Camera settings** panel and set **Burst count** to however
 many shots you want each click to take. Save. Now each click of
@@ -125,7 +122,7 @@ while it's working.
 
 ![Burst count and the auto-capture interval, both inside the Camera settings panel.](img/burst_and_timer_controls.png)
 
-### Timed (interval) capture
+#### Timed (interval) capture
 
 In the **Camera settings** panel under **Capture behaviour**, tick
 **Auto-capture every** and set the interval (number + seconds/minutes
@@ -148,7 +145,7 @@ If a tick happens while the previous capture is still running (e.g.
 burst_count is large and the interval is short), the new tick is
 quietly dropped — no images are queued or duplicated.
 
-## Reviewing pictures
+### Reviewing pictures
 
 ![The gallery after several capture events. Each event produces three images, one per camera, sharing a timestamp prefix.](img/gallery_with_images.png)
 
@@ -161,7 +158,7 @@ The gallery refreshes whenever you load or reload the page; it does
 **not** auto-update while you're staring at it. Reload to see new
 captures.
 
-## Deleting pictures
+### Deleting pictures
 
 There are two ways to delete:
 
@@ -174,7 +171,7 @@ There are two ways to delete:
 Deletion is immediate and **cannot be undone** — there is no recycle
 bin. If you might need a picture later, save it to your laptop first.
 
-## Changing camera settings
+### Changing camera settings
 
 Click **Camera settings** at the top of the page to expand the panel.
 Change what you need, then click **Save settings** at the bottom — nothing
@@ -190,7 +187,7 @@ takes effect until you save.
 > team. The interface will show a red warning banner whenever Advanced
 > mode is on.
 
-## Focus mode
+### Focus mode
 
 Focus mode shows live video from **one** camera so you can turn the
 lens by hand and watch the image sharpen.
@@ -237,7 +234,7 @@ automatically, so capturing still works on your next visit.
 > a known software bug we haven't tracked down yet — it doesn't affect
 > capture quality, just the live-preview pipeline.
 
-# Operating the payload in the field
+## Operating the payload in the field
 
 The payload is one rigid package — cameras, Pi and battery bolted
 together on common standoffs — so it mounts and demounts as a single
@@ -252,18 +249,18 @@ Two things are worth doing every time before you commit to a run:
 2. **Check the gallery is empty enough** for the number of pictures you
    plan to take. Nothing deletes old ones for you.
 
-## On a drone
+### On a drone
 
-## On a balloon
+### On a balloon
 
-## In the lab
+### In the lab
 
-# Troubleshooting
+## Troubleshooting
 
 *Sections will fill in as we encounter and fix the issues in practice.
 What's listed here is the menu of likely problems.*
 
-## "I can't connect to the wifi"
+### "I can't connect to the wifi"
 
 If you're trying to join `satnet` in the field and it isn't showing
 up in your wifi list:
@@ -278,7 +275,7 @@ up in your wifi list:
   the lab).
 - Verify the Pi is actually on by looking for its activity LED.
 
-## "The web page won't load"
+### "The web page won't load"
 
 - **In the lab:** make sure your laptop and the Pi are on the same
   wifi network. Try the Pi's IP address (`http://<pi-ip>:8000`)
@@ -289,7 +286,7 @@ up in your wifi list:
 - If the page loads partially and then hangs, the Pi might be busy
   capturing a long burst — wait 30 seconds and reload.
 
-## "Only one (or two) cameras show up"
+### "Only one (or two) cameras show up"
 
 If you click Capture and only get one or two pictures back instead of
 three:
@@ -307,7 +304,7 @@ three:
   entries. If one is missing, it's a hardware problem — that camera
   isn't being reached at all.
 
-## "The pictures are all black" (or focus mode looks black)
+### "The pictures are all black" (or focus mode looks black)
 
 Almost always **exposure**, not a fault. The cameras never adjust
 exposure on their own — auto-exposure is deliberately switched off,
@@ -343,7 +340,7 @@ darker, because an underexposed picture can be brightened afterwards.
 > a laptop screen renders as black. At 8000 microseconds the same view
 > was perfectly usable.
 
-## "Focus mode shows a completely black image"
+### "Focus mode shows a completely black image"
 
 If this is the first focus session after the Pi booted, just **click
 Exit and click the same Focus button again**. The second attempt comes
@@ -359,7 +356,7 @@ help, check the obvious physical things on that camera:
   ring — slide it to the open position.)
 - Camera pointed at something completely dark?
 
-## "It says 'busy' when I press capture"
+### "It says 'busy' when I press capture"
 
 This means a capture is already in progress — either an earlier click
 hasn't finished, or the auto-capture timer just fired and is in the
@@ -370,7 +367,7 @@ constantly see this, either lower the burst count or lengthen the
 interval so the system has time to finish one capture before the next
 trigger comes.
 
-## "I'm out of disk space"
+### "I'm out of disk space"
 
 There is **no automatic cleanup**. Nothing deletes old pictures for you,
 so a long timed-capture run will fill the card and captures will start
@@ -388,7 +385,7 @@ If captures are already failing, clear the gallery and try again. If
 that does not help, ask whoever set the payload up to check free space
 over ssh with `df -h`.
 
-# Glossary
+## Glossary
 
 **Burst.** A group of pictures taken back-to-back from one button press.
 You set the size (e.g. "burst of 10"); the system captures that many
@@ -420,6 +417,6 @@ The science team compares on-line vs off-line to find fires.
 glowing potassium atoms emit. Burning vegetation contains potassium,
 which is why this works for wildfires.
 
-# Where to get help
+## Where to get help
 
 *(Contact info to be added.)*

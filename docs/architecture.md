@@ -1,10 +1,8 @@
----
-title: "System Architecture"
-subtitle: "Design and rationale for the Pi 4 / mux / 3-camera build"
-date: "Design document — updated 31 August 2026"
----
+# System Architecture
 
-# Purpose of this document
+*Design and rationale for the Pi 4 / mux / 3-camera build · Design document — updated 31 August 2026*
+
+## Purpose of this document
 
 What got built, and *why* it got built that way. Intended audience: any
 developer joining the project who needs to make a non-trivial change
@@ -13,7 +11,7 @@ and shouldn't have to re-derive the design decisions from scratch.
 The user-facing manual is `operator_manual.md`. The physics is in
 `k_line_primer.md`. This doc is for everyone else.
 
-# What the system is
+## What the system is
 
 A single Raspberry Pi 4 drives three InnoMaker IMX296RAW global-shutter
 cameras through an Arducam Multi Camera Adapter v2.2 (a CSI multiplexer).
@@ -51,7 +49,7 @@ flowchart LR
   Mux --> Cam2
 ```
 
-## What used to be here (and why it's gone)
+### What used to be here (and why it's gone)
 
 The pre-rewrite architecture was four boards: three Raspberry Pi Zero
 2 W camera nodes + one ESP32 + SIM7600 flight controller, talking LTE
@@ -67,9 +65,9 @@ particular, four boards' worth of weight and wiring was overkill.
 The retired code is in `../legacy/` and the last snapshot is tagged
 `v0.2-his-final-snapshot`.
 
-# Design decisions
+## Design decisions
 
-## Daemon + UI split (not a mega-Flask)
+### Daemon + UI split (not a mega-Flask)
 
 The capture daemon owns the camera handles, the mux state, the
 scheduler, and the on-disk image store. The Flask UI is purely a view
@@ -96,7 +94,7 @@ The cost is two services to ship instead of one. Worth it.
 > [`flight_findings.md`](flight_findings.md). This section is
 > left as written until the filters arrive and the rename lands together.
 
-## Sensor pick: IMX477 today, IMX296 as a future option
+### Sensor pick: IMX477 today, IMX296 as a future option
 
 We had both on the bench. IMX296RAW is the *better* sensor for this
 payload — global shutter (motion-immune for the drone), monochrome
@@ -121,7 +119,7 @@ agnostic, the mux switching is in the kernel.
 The IMX296 work is a follow-up in
 [`pi/dtoverlay/README.md`](../pi/dtoverlay/README.md).
 
-## Arducam Multi Camera Adapter v2.2 (and the simultaneity tradeoff)
+### Arducam Multi Camera Adapter v2.2 (and the simultaneity tradeoff)
 
 The v2.2 is a CSI **switch**, not a true multiplexer. The Pi's CSI
 controller sees one camera at a time. To capture all three filters, the
@@ -146,7 +144,7 @@ capture but at a price the project couldn't justify. If the science
 team finds the registration noise unacceptable in flight data, that's
 the upgrade path.
 
-## Settings: shared by default, advanced per-camera override with a warning
+### Settings: shared by default, advanced per-camera override with a warning
 
 The ratio math only works if all three channels are radiometrically
 comparable. If a student changes exposure on camera 0 and not on the
@@ -162,7 +160,7 @@ Justification: students misconfiguring the cameras is the most likely
 failure mode for the science. We make the safe path the default and the
 unsafe path loud.
 
-## Burst and timer concurrency: busy → reject
+### Burst and timer concurrency: busy → reject
 
 There is one capture queue. If the operator clicks **Capture** while a
 timer-triggered burst is in flight, the request is rejected with a
@@ -174,7 +172,7 @@ No priority queue, no preempt, no buffering. Simpler is enough for the
 known use cases — and a queued-up backlog of stale captures is worse
 than dropped ticks.
 
-## Storage and auto-prune
+### Storage and auto-prune
 
 A 20-shot burst × 3 cameras × ~1 MB per IMX296 monochrome RAW ≈ 60 MB.
 Timer mode at one burst per second fills a 64 GB SD card in roughly
@@ -184,7 +182,7 @@ fifteen minutes of running. Two mitigations:
 - The UI shows a live disk-usage bar. Settings include a **"Keep most
   recent N captures"** auto-prune that the daemon enforces.
 
-## Wifi: known network or AP fallback
+### Wifi: known network or AP fallback
 
 On boot, the Pi tries to connect to known wifi networks via
 NetworkManager. If none come up within a timeout, it brings up an AP
@@ -196,13 +194,13 @@ This is the same approach the legacy `software/satnet/` scripts used —
 the script gets ported into `pi/systemd/` and wrapped with the
 "try-known-first, fall-back-to-AP" boot logic.
 
-## Auto-start on boot
+### Auto-start on boot
 
 Both the daemon and the UI run as systemd services so students never
 need to SSH in. Unit files live in `pi/systemd/`. Logs go to journald;
 the UI surfaces a "view logs" tail for diagnostics.
 
-# Implementation phases
+## Implementation phases
 
 | Phase | Goal | Deliverable |
 |---|---|---|
@@ -217,7 +215,7 @@ the UI surfaces a "view logs" tail for diagnostics.
 Each phase ends with: working build + updated `operator_manual.md` +
 a tagged commit.
 
-# Code layout (target — fills in over Phases 2–5)
+## Code layout (target — fills in over Phases 2–5)
 
 ```
 pi/
@@ -245,7 +243,7 @@ pi/
 └── tests/
 ```
 
-# Cross-references
+## Cross-references
 
 - [`operator_manual.md`](operator_manual.md) — student-facing usage doc.
 - [`hardware_setup.md`](hardware_setup.md) — first-boot Pi setup,

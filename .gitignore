@@ -6,8 +6,6 @@ Thumbs.db
 *.tmp
 *.bak
 
-# === Docs build output ===
-docs/build/
 
 # === OS images ===
 *.img
