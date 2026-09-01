@@ -12,7 +12,7 @@ Phase 5a: start_focus(port) / stop_focus() / iter_frames() implement a
 Post-TL-002: _single_burst splits frame grab from JPEG encode so encoding
   no longer sits between two channels. Flight data showed 1-2 s between
   the first and last channel of a triplet, which is the dominant source of
-  channel misregistration. See docs/channel_registration.md.
+  channel misregistration. See docs/flight_findings.md.
 
 The kernel's video-mux + pca954x drivers handle the physical port
 switching when we start a Picamera2 instance on a specific camera_num.
@@ -336,7 +336,7 @@ class Cameras:
         and EXIF. capture_array() copies into numpy, which costs a little time
         but is the only safe option here.
 
-        See docs/channel_registration.md.
+        See docs/flight_findings.md.
         """
         # Phase 1 — grab. One camera open at a time; see the class docstring.
         grabbed: list[tuple[Channel, Path, "object"]] = []

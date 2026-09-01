@@ -134,7 +134,7 @@ The modules are InnoMaker **CAM-IMX296RAW**, self-clocked from an onboard
 
 > **These modules have hardware trigger and strobe pins.** That is a
 > potential answer to the biggest open problem on this payload — see
-> [`channel_registration.md`](channel_registration.md).
+> [`flight_findings.md`](flight_findings.md).
 
 ## Focus mechanism — the mono plate is better
 

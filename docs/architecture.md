@@ -93,7 +93,7 @@ The cost is two services to ship instead of one. Worth it.
 > document describes. The `(S766 + S770) / (2 · S762)` ratio below is
 > therefore out of date: the continuum under the line is now interpolated
 > between the 750 and 780 references. See
-> [`channel_registration.md`](channel_registration.md). This section is
+> [`flight_findings.md`](flight_findings.md). This section is
 > left as written until the filters arrive and the rename lands together.
 
 ## Sensor pick: IMX477 today, IMX296 as a future option

@@ -1,184 +1,21 @@
 ---
-title: "Three-Channel Registration"
-subtitle: "Why the channels don't line up, what we measured, and what we're doing about it"
-date: "2026-08-29 — findings from flight test TL-002"
+title: "Flight Findings — TL-002"
+subtitle: "Cubesat@MSU"
+date: "Version 1.0 — 1 September 2026 · for payload v0.3"
 ---
 
-# The question
+# What this document is
 
-After the 2026-08-29 drone session, the request was to "write some code that
-lines up the overlap of each picture into one large picture."
+What the 2026-08-29 drone flight taught us about the instrument, and the
+decisions that came out of it. It exists so the reasoning behind the current
+design is recoverable rather than folklore.
 
-This document records what the flight data actually shows, what the problem
-turned out to be, and the plan. It exists so that the next person to pick this
-up does not have to re-derive it.
+**Source data:** 122 frames / 41 capture events, logged as TL-002.
 
-**Source data:** 122 frames / 41 capture events from
-`ECE-4512 Capstone I/payload/testing_aug_29/testing_data/`, logged as TL-002.
-
-# First: this is co-registration, not stitching
-
-"Splice into one large picture" describes **panorama stitching** — several
-cameras covering different parts of a scene, mosaicked into a wider image.
-That is not what this payload does.
-
-All three cameras point at the **same** scene through different filters.
-Measured frame overlap across the flight set is **95–99%** in the median case.
-The cameras are not covering different ground; they are covering the same
-ground in different colours.
-
-What we actually need is **co-registration**: warp all three frames onto a
-common pixel grid so that pixel `(x, y)` is the same patch of ground in every
-channel, then stack them into one three-channel image and evaluate the K-line
-ratio per pixel.
-
-> The output is **one image the size of one camera**, with three spectral
-> channels — not a larger image. Getting this distinction wrong sends you
-> after panorama libraries that solve a problem we do not have.
-
-# How the alignment actually works
-
-Worth stating plainly, because it is easy to assume a different method.
-
-**We do not identify landmarks.** Nothing looks for the stakes, the H on the
-landing pad, or any other feature. The method is *phase correlation*: take
-the Fourier transform of both frames, form the normalised cross-power
-spectrum, transform back, and the location of the peak is the translation
-that best aligns them. It uses every pixel in the frame at once and returns
-one (dx, dy) per channel pair, to sub-pixel precision.
-
-The reason to prefer it here is that it needs no landmarks. A fire in open
-scrub has no stakes in it, and a method that depends on recognisable objects
-stops working exactly where the instrument is supposed to work.
-
-## The geometric model, and why it is justified
-
-The assumption is that the three cameras have parallel lines of sight and
-equal magnification, so the images differ by a translation and nothing else.
-That is an assumption, so it was measured:
-
-| | cam1 → cam0 | cam2 → cam0 |
-|---|---|---|
-| Rotation | −0.03° | −0.11° |
-| Scale | 1.003 | 1.007 |
-
-Both negligible. A translation is the right model.
-
-## The offsets are not fixed, and that is the whole difficulty
-
-If the cameras are rigid and the scene is far away, the offset between
-channels should be a constant — measure it once, apply it forever. Measured
-across 30 usable airborne triplets, that is *nearly* true:
-
-- **23 of 30 needed no correction at all**, typical residual 0.1–0.8 px. At
-  range, with the aircraft momentarily still, the three channels land on top
-  of each other to a fraction of a pixel. The cameras are well aligned.
-- **7 of 30 needed a large correction**, 100 to 790 px.
-
-The large ones are not a property of the cameras. They are captures where
-the aircraft moved during the sequence: the multiplexer can only address one
-sensor at a time, so the three channels are exposed about two seconds apart,
-and anything the platform does in that window displaces them.
-
-This is why the shift is estimated per capture rather than calibrated once.
-A fixed calibration would be correct for the 23 and badly wrong for the 7,
-with no way to tell which is which from the image alone.
-
-## Extracting the overlap
-
-After each channel is shifted onto the reference, the frames are cropped to
-the rectangle that is valid in all three — the region where every channel
-has real data rather than the blank edge left behind by shifting. That crop
-is the only region where the index can be computed, and it is what the tool
-writes out.
-
-At range the crop costs almost nothing, because the offsets are almost zero.
-On the worst airborne triplets it removes about 30% of the frame. Close in,
-it costs more, because parallax from the 40 mm baseline is real at a metre.
-
-## Where this method stops working
-
-Phase correlation returns one translation for the whole frame. That is
-correct when everything is at roughly the same distance, and wrong when it
-is not: nearer objects shift more than distant ones, and no single
-translation satisfies both. Searching exhaustively for the best possible
-shift shows the limit clearly —
-
-| Scene | Best achievable single-shift alignment |
-|---|---|
-| Foliage about 1 m away | NCC 0.483 |
-| Ground from the drone, 15–20 ft | NCC 0.926 |
-
-— and it is a property of the geometry, not of the estimator. For
-close-range work the practical answer is to keep the subject and its
-backdrop at similar distance, which the burn setup already does.
-
-## A landmark method would still be useful
-
-Not as a replacement, but as an independent check. Imaging a target with
-recognisable points at a known distance would let the fixed camera-to-camera
-geometry be measured directly and compared against what phase correlation
-reports, which would confirm the co-boresighting result above by a second
-route. The landing-pad H and the stakes are exactly the sort of features
-that would serve.
-
-# What we measured
-
-Feature matching (ORB + RANSAC, CLAHE-normalised) across all 40 complete
-triplets, estimating the transform from cam1 and cam2 onto cam0.
-
-## The cameras are mechanically excellent
-
-| | cam1 → cam0 | cam2 → cam0 |
-|---|---|---|
-| Rotation (median) | −0.03° | −0.11° |
-| Scale (median) | 1.003 | 1.007 |
-
-Rotation is essentially zero and scale is essentially unity. The plate holds
-the three cameras coplanar and co-aligned, and the three lenses are at
-matching focal lengths.
-
-**Consequence: we do not need homographies, lens distortion models, or any
-projective machinery.** A translation-only model is very nearly sufficient.
-
-## But translation is not constant
-
-| | cam1 → cam0 | cam2 → cam0 |
-|---|---|---|
-| dx median / IQR | +17 px / **212 px** | +70 px / **487 px** |
-| dy median / IQR | +28 px / **399 px** | +103 px / **545 px** |
-
-If the payload were rigid and the scene static, this offset would be a fixed
-number you could measure once and apply forever. It is not — it swings by
-hundreds of pixels between one capture event and the next.
-
-## The offset is motion, not geometry
-
-The three cameras sit roughly 40 mm apart on the plate. Geometric parallax
-from that baseline is small:
-
-| Lens | Parallax at 5 m | at 12 m |
-|---|---|---|
-| 4 mm | 21 px | 9 px |
-| 6 mm | 31 px | 13 px |
-| 8 mm | 41 px | 17 px |
-
-**Tens of pixels of parallax against hundreds of pixels of observed offset.**
-The offset is dominated by something else, and EXIF says what:
-
-```
-cam0   13:06:49   .../pca@70/i2c@2/imx477
-cam1   13:06:50   .../pca@70/i2c@1/imx477
-cam2   13:06:50   .../pca@70/i2c@0/imx477
-```
-
-**Every triplet spans 1–2 seconds** from first channel to last (24 of 40
-triplets at ≥1 s, 16 at ≥2 s; EXIF resolution is 1 s, so these are lower
-bounds). The architecture document budgeted **≤300 ms** for the whole
-three-channel cycle. We are 3–6× over.
-
-A drone drifting even slowly moves a long way in a second and a half. **The
-variable offset between channels is the aircraft moving between exposures.**
+It does not explain how channel alignment works. That moved to
+[`alignment_method.md`](alignment_method.md), which covers the mathematics
+and a worked example, with a practical guide in
+[`alignment_walkthrough.md`](alignment_walkthrough.md).
 
 # Root cause: the capture cycle is too slow
 

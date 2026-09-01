@@ -78,7 +78,7 @@ def supported_resolutions() -> list[tuple[int, int]]:
     return list(_supported_resolutions)
 
 # 2028x1520 rather than the full 4056x3040. Two reasons, both from TL-002
-# (see docs/channel_registration.md):
+# (see docs/flight_findings.md):
 #
 #   Speed — it more than halves the three-channel cycle, 1.18 s -> 0.52 s
 #   measured on the rig. That cycle time is the dominant cause of channel

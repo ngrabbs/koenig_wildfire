@@ -11,7 +11,7 @@ Flight test TL-002 showed rotation between channels is ~0.1 deg and scale
 between capture events because the aircraft moves during the capture cycle.
 So the model here is a 2-DOF translation estimated *per triplet* - a fixed
 calibration cannot work while motion dominates. See
-docs/channel_registration.md for the measurements behind that choice.
+docs/flight_findings.md for the measurements behind that choice.
 
 Usage:
     tools/register_triplets.py IMAGE_DIR [-o OUTPUT_DIR] [options]

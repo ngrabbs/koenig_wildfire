@@ -43,7 +43,7 @@ Then, depending on what you are working on:
 | Touching the capture code | [`docs/architecture.md`](docs/architecture.md) |
 | Running the alignment yourself | [`docs/alignment_walkthrough.md`](docs/alignment_walkthrough.md) — four commands and worked examples |
 | Working on image alignment | [`docs/alignment_method.md`](docs/alignment_method.md) — the method, with the maths |
-| Why alignment came out the way it did | [`docs/channel_registration.md`](docs/channel_registration.md) — the flight findings |
+| Understanding why it is built this way | [`docs/flight_findings.md`](docs/flight_findings.md) — what the flight taught us, and the decisions taken |
 | Fighting the camera multiplexer | [`pi/dtoverlay/README.md`](pi/dtoverlay/README.md) |
 
 ---
