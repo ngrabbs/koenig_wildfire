@@ -41,7 +41,8 @@ Then, depending on what you are working on:
 |---|---|
 | Setting up a fresh Pi | [`docs/hardware_setup.md`](docs/hardware_setup.md) |
 | Touching the capture code | [`docs/architecture.md`](docs/architecture.md) |
-| Working on image alignment | [`docs/channel_registration.md`](docs/channel_registration.md) |
+| Working on image alignment | [`docs/alignment_method.md`](docs/alignment_method.md) — the method, with the maths |
+| Why alignment came out the way it did | [`docs/channel_registration.md`](docs/channel_registration.md) — the flight findings |
 | Fighting the camera multiplexer | [`pi/dtoverlay/README.md`](pi/dtoverlay/README.md) |
 
 ---

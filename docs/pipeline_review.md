@@ -156,6 +156,9 @@ in all three.
 
 ![The same pixel box in two channels, from the drone at about 15–20 ft. Top: unaligned — the cameras are offset, so the diagonal path and the bright patch sit in different places. Bottom: after a 160 px correction, the same features line up.](img/rev_registration.jpg)
 
+The full method, with the mathematics and a worked example, is in
+[`alignment_method.md`](alignment_method.md).
+
 The alignment model is a single translation per channel pair. That is
 justified for imaging at range: measured rotation between channels is about
 0.1° and scale about 1.005, both negligible. On this capture the correction
