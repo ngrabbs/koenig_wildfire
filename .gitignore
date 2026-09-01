@@ -89,3 +89,9 @@ yarn-error.log*
 # macOS metadata droppings
 .DS_Store
 ._*
+
+# Pipeline outputs — regenerate with tools/, never commit
+aligned/
+corrected/
+kindex/
+test_images/
