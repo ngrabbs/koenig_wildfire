@@ -66,7 +66,29 @@ FRAME_RE = re.compile(
 # the instrument's response. Blurring hard removes the texture and keeps the
 # vignetting, which varies only slowly across the frame. Sigma is a fraction
 # of frame width so it scales with resolution.
-SMOOTH_FRACTION = 0.06
+# Sigma of the blur applied to the flat before it becomes a gain map, as a
+# fraction of frame width. This existed to keep sensor noise out of the gain
+# map back when the only thing being corrected was smooth lens vignetting,
+# and 0.06 - about 87 px at 1456 wide - was harmless for that.
+#
+# It is not harmless now. With narrowband filters fitted the field response
+# carries concentric interference rings about 270 px apart, because an
+# interference filter in a non-collimated beam passes a wavelength that
+# depends on the angle light strikes it. A sigma of 87 px erases structure
+# finer than roughly 218 px, which takes most of that with it - so the old
+# default would smooth away the very thing the correction now exists to
+# remove. Measured amplitude of the rings is 8-14% peak to peak.
+#
+# 0.01 is about 15 px, preserving everything down to ~36 px while still
+# averaging several hundred pixels per kernel. There is no noise argument for
+# more: a median of ten frames sits near 0.2 DN on a mean of 70.
+#
+# The cost of smoothing less is that anything in the flat which is NOT the
+# instrument - a tree at the frame edge, a brightness gradient across the sky
+# - gets baked into the gain map as if it were. Shoot flats that are actually
+# uniform, and move the payload between frames so the median rejects what
+# does not belong.
+SMOOTH_FRACTION = 0.01
 
 # A gain outside this range means the flat was near zero somewhere - a dead
 # corner, or a flat that was itself underexposed. Clamping stops one dark
@@ -115,7 +137,8 @@ def stack_mean(paths: list[Path]) -> np.ndarray:
     return acc / len(paths)
 
 
-def calibrate(flat_dir: Path, dark_dir: Path | None, out_path: Path) -> int:
+def calibrate(flat_dir: Path, dark_dir: Path | None, out_path: Path,
+              smooth_fraction: float = SMOOTH_FRACTION) -> int:
     flats = scan(flat_dir)
     if not flats:
         sys.exit(f"no capture frames found in {flat_dir}")
@@ -141,8 +164,10 @@ def calibrate(flat_dir: Path, dark_dir: Path | None, out_path: Path) -> int:
         flat_maps[port] = f
 
     # Report what we are about to correct, before correcting it.
-    print("BEFORE correction — the flat should be identical in all channels,")
-    print("since with no filters fitted every camera sees the same light:")
+    print("BEFORE correction — per-channel response on the flat.")
+    print("These will NOT match once narrowband filters are fitted: each")
+    print("channel sees a different part of the source's spectrum, and each")
+    print("filter has its own field response. That is what is being measured.")
     for port in ports:
         f = flat_maps[port]
         print(f"  cam{port}: mean={f.mean():7.2f}  "
@@ -152,13 +177,22 @@ def calibrate(flat_dir: Path, dark_dir: Path | None, out_path: Path) -> int:
           f"between brightest and dimmest\n")
 
     # One target for every channel: this is what equalises them.
+    #
+    # Note what this means for the choice of flat source. Equalising to a
+    # common target forces delta77 of the flat to exactly zero, so whatever
+    # is shot as the flat becomes the instrument's zero point. Clear sky is a
+    # fine SPATIAL reference but a poor zero: its spectrum falls steeply with
+    # wavelength (Rayleigh scattering, hence blue), so calibrating on sky
+    # bakes that slope into the gains. A neutral diffuser - Spectralon,
+    # Fluorilon, sintered PTFE - under the same broadband illumination the
+    # target will be under is the defensible zero.
     target = float(np.mean([flat_maps[p].mean() for p in ports]))
 
     gains, clipped_any = {}, False
     for port in ports:
         smooth = cv2.GaussianBlur(
             flat_maps[port], (0, 0),
-            sigmaX=SMOOTH_FRACTION * flat_maps[port].shape[1])
+            sigmaX=smooth_fraction * flat_maps[port].shape[1])
         with np.errstate(divide="ignore", invalid="ignore"):
             g = target / np.maximum(smooth, 1e-3)
         n_clipped = int(((g < GAIN_LIMITS[0]) | (g > GAIN_LIMITS[1])).sum())
@@ -352,6 +386,12 @@ def main() -> int:
     c.add_argument("--dark", type=Path, default=None,
                    help="directory of dark frames (lens caps on, same exposure)")
     c.add_argument("-o", "--output", type=Path, default=Path("correction.npz"))
+    c.add_argument("--smooth", type=float, default=SMOOTH_FRACTION,
+                   help=f"blur sigma applied to the flat before inverting it, as "
+                        f"a fraction of frame width (default {SMOOTH_FRACTION}). "
+                        f"Raise it only if the flat is noisy; raising it past "
+                        f"about 0.02 erases the filters' interference rings "
+                        f"instead of correcting them")
 
     k = sub.add_parser("check", help="judge whether a candidate flat is usable")
     k.add_argument("flat_dir", type=Path)
@@ -371,7 +411,7 @@ def main() -> int:
             sys.exit(f"not a directory: {args.flat}")
         if args.dark and not args.dark.is_dir():
             sys.exit(f"not a directory: {args.dark}")
-        return calibrate(args.flat, args.dark, args.output)
+        return calibrate(args.flat, args.dark, args.output, args.smooth)
     return apply(args.image_dir, args.correction, args.output)
 
 
