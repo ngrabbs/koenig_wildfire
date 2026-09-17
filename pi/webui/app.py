@@ -26,7 +26,7 @@ BOOL_CONTROLS = {n for n, spec in CONTROL_SCHEMA.items() if spec["type"] is bool
 # from the daemon's settings - a second hardcoded copy here could drift from
 # the one the filenames are built from, which would put a wrong wavelength on
 # the screen while the data on disk said something else.
-FALLBACK_WAVELENGTH = {0: 750, 1: 770, 2: 780}
+FALLBACK_WAVELENGTH = {0: 770, 1: 750, 2: 780}
 
 
 def _wavelengths(current_settings) -> dict[int, int]:

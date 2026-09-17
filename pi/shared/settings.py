@@ -112,7 +112,7 @@ def _default_settings() -> dict:
         # record of a hardware fact, and every capture filename is derived
         # from it, so it must be set to match reality and verified - see
         # docs/filter_assignment.md. Defaults to the long-range set.
-        "wavelengths": {"0": 750, "1": 770, "2": 780},
+        "wavelengths": {"0": 770, "1": 750, "2": 780},
         "burst_count": 1,
         "timer": {"enabled": False, "interval_seconds": 60},
     }

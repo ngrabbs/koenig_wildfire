@@ -35,7 +35,7 @@ patches of ground.
 
 Usage:
     tools/k_index.py ALIGNED_DIR -o OUT_DIR
-    tools/k_index.py ALIGNED_DIR -o OUT_DIR --roles 0=750,1=770,2=780
+    tools/k_index.py ALIGNED_DIR -o OUT_DIR --roles 0=770,1=750,2=780
     tools/k_index.py ALIGNED_DIR --report-only
 
 Requires: numpy, opencv-python. matplotlib for the spectral plot (optional).
@@ -59,11 +59,21 @@ FRAME_RE = re.compile(
     r"^(?P<stem>\d{8}_\d{6}_\d{3})_cam(?P<port>\d+)_(?P<wl>\d+)nm"
     r"(?P<suffix>_aligned)?\.(?P<ext>jpe?g|png|tiff?)$", re.IGNORECASE)
 
-# Port -> nominal wavelength. The default is the intended assignment for the
-# ordered Thorlabs set. It is NOT read from the filename: captures are still
-# named with the superseded 762/766/770 labels, and trusting those would
-# silently compute the wrong thing. Override with --roles.
-DEFAULT_ROLES = {0: 750, 1: 770, 2: 780}
+# Port -> wavelength is read from the filenames by default, because that is
+# where the payload records which filter was on which camera at the moment of
+# capture. It therefore travels with the data: a set shot under a different
+# filter arrangement analyses correctly with no flag.
+#
+# This fallback is used only if the filenames carry no wavelength, and
+# --roles overrides both. Captures dated before 2026-09-17 are named
+# 762/766/770 under a superseded scheme with no filters fitted; those are not
+# a valid set and the sanity check below rejects them.
+FALLBACK_ROLES = {0: 770, 1: 750, 2: 780}
+
+# The two standard sets. A triplet whose wavelengths are not one of these is
+# either from the pre-filter era or has a mislabelled channel, and either way
+# the index would be meaningless.
+KNOWN_SETS = [{750, 770, 780}, {760, 770, 780}]
 
 # 16-bit input from flat_field.py is 8.8 fixed point.
 INPUT_SCALE_16BIT = 256.0
@@ -73,15 +83,19 @@ INPUT_SCALE_16BIT = 256.0
 MIN_SIGNAL = 4.0
 
 
-def scan(directory: Path) -> dict[str, dict[int, Path]]:
+def scan(directory: Path) -> tuple[dict[str, dict[int, Path]],
+                                   dict[str, dict[int, int]]]:
+    """Group frames by capture event, and read each one's declared wavelength."""
     groups: dict[str, dict[int, Path]] = defaultdict(dict)
+    waves: dict[str, dict[int, int]] = defaultdict(dict)
     for p in sorted(directory.iterdir()):
         if not p.is_file():
             continue
         m = FRAME_RE.match(p.name)
         if m:
             groups[m["stem"]][int(m["port"])] = p
-    return dict(groups)
+            waves[m["stem"]][int(m["port"])] = int(m["wl"])
+    return dict(groups), dict(waves)
 
 
 def read_channel(path: Path) -> np.ndarray:
@@ -182,24 +196,21 @@ def main() -> int:
     ap.add_argument("--report-only", action="store_true")
     args = ap.parse_args()
 
-    roles = dict(DEFAULT_ROLES)
-    if args.roles:
-        roles = {int(k): int(v) for k, v in
-                 (part.split("=") for part in args.roles.split(","))}
-    order = sorted(roles, key=lambda p: roles[p])
-    if len(order) != 3:
-        sys.exit("need exactly three channels")
-    lo, on, hi = order
-    print(f"channel roles: cam{lo}={roles[lo]}nm (continuum), "
-          f"cam{on}={roles[on]}nm (on-line), cam{hi}={roles[hi]}nm (continuum)")
-    f = (roles[on] - roles[lo]) / (roles[hi] - roles[lo])
-    print(f"continuum weights: {1-f:.3f} x S{roles[lo]}  +  {f:.3f} x S{roles[hi]}\n")
-
     if not args.image_dir.is_dir():
         sys.exit(f"not a directory: {args.image_dir}")
-    groups = scan(args.image_dir)
+    groups, waves = scan(args.image_dir)
     if not groups:
         sys.exit(f"no capture frames found in {args.image_dir}")
+
+    override = None
+    if args.roles:
+        override = {int(k): int(v) for k, v in
+                    (part.split("=") for part in args.roles.split(","))}
+        print("channel roles: from --roles " + ", ".join(
+            f"cam{p}={override[p]}nm" for p in sorted(override)))
+    else:
+        print("channel roles: read from each capture's filenames")
+    print()
 
     out_dir = None if args.report_only else args.output
     if out_dir:
@@ -209,6 +220,17 @@ def main() -> int:
     flat_like = 0
     for stem in sorted(groups):
         ch = groups[stem]
+        roles = override or waves.get(stem) or dict(FALLBACK_ROLES)
+        if len(roles) != 3:
+            print(f"  {stem}  INCOMPLETE - skipped")
+            continue
+        if set(roles.values()) not in KNOWN_SETS:
+            sets = " or ".join("/".join(str(x) for x in sorted(k)) for k in KNOWN_SETS)
+            print(f"  {stem}  wavelengths {sorted(roles.values())} are not a valid "
+                  f"set ({sets}) - skipped")
+            continue
+        order = sorted(roles, key=lambda p: roles[p])
+        lo, on, hi = order
         if not all(p in ch for p in order):
             print(f"  {stem}  INCOMPLETE - skipped")
             continue

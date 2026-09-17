@@ -46,8 +46,8 @@ class Channel(NamedTuple):
 # 760/770/780 for close work. Editing the numbers below does not change what
 # a capture is named; change the setting.
 CHANNELS: list[Channel] = [
-    Channel(port=0, wavelength_nm=750),
-    Channel(port=1, wavelength_nm=770),
+    Channel(port=0, wavelength_nm=770),
+    Channel(port=1, wavelength_nm=750),
     Channel(port=2, wavelength_nm=780),
 ]
 
