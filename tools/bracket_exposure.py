@@ -101,6 +101,12 @@ def main() -> int:
                     help="where the payload writes captures, for the manifest")
     ap.add_argument("--settle", type=float, default=0.3,
                     help="seconds to wait after applying settings (default 0.3)")
+    ap.add_argument("-n", "--repeat", type=int, default=1,
+                    help="triplets to take at each setting (default 1). Use this "
+                         "to collect flats or darks: a median over many frames "
+                         "rejects noise, and if you move the payload between "
+                         "frames it rejects the scene as well, leaving only the "
+                         "fixed pattern of the optics")
     args = ap.parse_args()
 
     exposures = parse_list(args.exposures, int)
@@ -139,27 +145,40 @@ def main() -> int:
                 put_shared(patch)
                 time.sleep(args.settle)
 
-                try:
-                    caps = capture()
-                except SystemExit as exc:
-                    print(f"  {exp:>8} us  capture failed: {exc}")
-                    continue
-
                 g_txt = f"{gain:.1f}" if gain is not None else "-"
-                for cap in sorted(caps, key=lambda c: waves.get(c["port"], c["port"])):
-                    path = img_dir / cap["id"]
-                    if not path.exists():
-                        print(f"  missing {cap['id']}")
+                for rep in range(args.repeat):
+                    try:
+                        caps = capture()
+                    except SystemExit as exc:
+                        print(f"  {exp:>8} us  capture failed: {exc}")
                         continue
-                    st = frame_stats(path)
-                    nm = waves.get(cap["port"], cap.get("wavelength_nm", 0))
-                    flag = "  CLIPPED" if st["clip"] >= CLIP_REJECT else ""
-                    label = f"cam{cap['port']} {nm}nm"
-                    print(f"{exp:>9}u {g_txt:>5} {label:>12}"
-                          f" {st['mean']:7.2f} {st['p99']:6.0f} {st['max']:5d} {st['clip']:6.2f}%{flag}")
-                    rows.append({"file": cap["id"], "exposure_us": exp,
-                                 "gain": g_txt, "port": cap["port"], "wavelength_nm": nm,
-                                 **{k: round(v, 3) for k, v in st.items()}})
+
+                    frames = []
+                    for cap in sorted(caps, key=lambda c: waves.get(c["port"], c["port"])):
+                        path = img_dir / cap["id"]
+                        if not path.exists():
+                            print(f"  missing {cap['id']}")
+                            continue
+                        st = frame_stats(path)
+                        nm = waves.get(cap["port"], cap.get("wavelength_nm", 0))
+                        frames.append((cap, nm, st))
+                        rows.append({"file": cap["id"], "exposure_us": exp,
+                                     "gain": g_txt, "port": cap["port"], "wavelength_nm": nm,
+                                     **{k: round(v, 3) for k, v in st.items()}})
+
+                    if args.repeat > 1:
+                        # One line per triplet, or this scrolls off the screen
+                        means = "  ".join(f"{nm}:{st['mean']:6.2f}" for _, nm, st in frames)
+                        worst = max((st["clip"] for _, _, st in frames), default=0.0)
+                        flag = "  CLIPPED" if worst >= CLIP_REJECT else ""
+                        print(f"{exp:>9}u {g_txt:>5} {f'#{rep + 1}':>5}   {means}{flag}")
+                    else:
+                        for cap, nm, st in frames:
+                            flag = "  CLIPPED" if st["clip"] >= CLIP_REJECT else ""
+                            label = f"cam{cap['port']} {nm}nm"
+                            print(f"{exp:>9}u {g_txt:>5} {label:>12}"
+                                  f" {st['mean']:7.2f} {st['p99']:6.0f} {st['max']:5d}"
+                                  f" {st['clip']:6.2f}%{flag}")
                 print()
     except KeyboardInterrupt:
         print("\ninterrupted")
