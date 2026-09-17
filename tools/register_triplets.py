@@ -266,19 +266,36 @@ def process_triplet(
         for p, im in aligned.items():
             cv2.imwrite(str(out_dir / f"{stem}_cam{p}_{waves[p]}nm_aligned.png"), im)
         if write_composite:
-            # False-colour QA image: one channel per RGB plane. If registration
-            # worked, edges are grey; coloured fringes mean residual misalignment.
-            # Always 8-bit — this is for eyeballing, not for measurement.
+            # False-colour QA image: one channel per RGB plane, ordered by
+            # wavelength so blue is the shortest and red the longest. Ordering
+            # by port instead would scramble the mapping whenever the filters
+            # are moved between cameras, which they have been.
+            #
+            # Each plane is stretched to its own 1-99 percentile range first.
+            # With narrowband filters fitted the three channels no longer
+            # record the same light, and their differing throughputs tint the
+            # whole frame — which swamps the one thing this image exists to
+            # show. After the stretch, grey means registered and coloured
+            # fringes mean residual misalignment, as before.
+            #
+            # QA only. That per-channel stretch destroys the radiometric
+            # relationship between the channels, so nothing may be measured
+            # from this file. k_index.py reads the aligned PNGs instead.
+            by_wave = sorted(aligned, key=lambda p: waves[p])
             planes = []
-            for p in sorted(aligned):
+            for p in by_wave:
                 im = aligned[p]
                 if im.ndim == 3:
                     im = cv2.cvtColor(im, cv2.COLOR_BGR2GRAY)
-                if im.dtype != np.uint8:
-                    im = cv2.convertScaleAbs(im, alpha=255.0 / max(float(im.max()), 1.0))
-                planes.append(im)
+                im = im.astype(np.float32)
+                lo, hi = np.percentile(im, (1.0, 99.0))
+                if hi - lo < 1e-6:
+                    hi = lo + 1.0
+                planes.append(np.clip((im - lo) * (255.0 / (hi - lo)),
+                                      0, 255).astype(np.uint8))
+            # planes run short -> long; cv2.merge wants B, G, R
             cv2.imwrite(str(out_dir / f"{stem}_composite.png"),
-                        cv2.merge([planes[2], planes[1], planes[0]]))
+                        cv2.merge([planes[0], planes[1], planes[2]]))
 
     return TripletResult(stem, reference, shifts, status, note)
 
