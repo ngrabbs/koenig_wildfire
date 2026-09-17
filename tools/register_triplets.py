@@ -44,7 +44,7 @@ except ImportError:  # pragma: no cover - dependency hint
     )
 
 
-# Capture filenames look like: 20260829_120648_759_cam0_762nm.jpg
+# Capture filenames look like: 20260917_120648_759_cam0_750nm.jpg
 # The stem before _cam is the capture-event id shared by all three channels.
 FRAME_RE = re.compile(
     r"^(?P<stem>\d{8}_\d{6}_\d{3})_cam(?P<port>\d+)_(?P<wl>\d+)nm\.(?P<ext>jpe?g|png|tiff?)$",
@@ -314,7 +314,7 @@ def main() -> int:
     groups, waves = find_triplets(args.image_dir)
     if not groups:
         sys.exit(f"no frames matching the capture naming convention in {args.image_dir}\n"
-                 f"    expected e.g. 20260829_120648_759_cam0_762nm.jpg")
+                 f"    expected e.g. 20260917_120648_759_cam0_750nm.jpg")
 
     print(f"{len(groups)} capture events in {args.image_dir}")
     if out_dir:

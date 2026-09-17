@@ -22,8 +22,20 @@ CAMERA_PORTS = [0, 1, 2]
 CONTROL_NAMES = list(CONTROL_SCHEMA.keys())
 BOOL_CONTROLS = {n for n, spec in CONTROL_SCHEMA.items() if spec["type"] is bool}
 
-# Display wavelength per port. Matches CHANNELS in pi/daemon/camera.py.
-PORT_WAVELENGTH = {0: 762, 1: 766, 2: 770}
+# Fallback only, used if the daemon cannot be reached. The live mapping comes
+# from the daemon's settings - a second hardcoded copy here could drift from
+# the one the filenames are built from, which would put a wrong wavelength on
+# the screen while the data on disk said something else.
+FALLBACK_WAVELENGTH = {0: 750, 1: 770, 2: 780}
+
+
+def _wavelengths(current_settings) -> dict[int, int]:
+    """Port -> filter wavelength, as the daemon currently has it."""
+    if current_settings:
+        wl = current_settings.get("wavelengths")
+        if wl:
+            return {int(k): int(v) for k, v in wl.items()}
+    return dict(FALLBACK_WAVELENGTH)
 
 
 def _request(path: str, method: str = "GET", body_bytes: bytes | None = None,
@@ -119,7 +131,7 @@ def index():
         resolutions=_resolutions_from(current_settings),
         rotations_allowed=ROTATIONS_ALLOWED,
         camera_ports=CAMERA_PORTS,
-        port_wavelengths=PORT_WAVELENGTH,
+        port_wavelengths=_wavelengths(current_settings),
         burst_count_max=BURST_COUNT_MAX,
         interval_value=interval_value,
         interval_unit=interval_unit,
@@ -170,6 +182,13 @@ def update_settings():
             rotations[str(port)] = form[key]
     if rotations:
         patch["rotations"] = rotations
+    wavelengths: dict[str, str] = {}
+    for port in CAMERA_PORTS:
+        key = f"wavelength_{port}"
+        if key in form and form[key].strip():
+            wavelengths[str(port)] = form[key]
+    if wavelengths:
+        patch["wavelengths"] = wavelengths
     if "timer_value" in form and form["timer_value"].strip():
         try:
             value = int(form["timer_value"])
@@ -210,10 +229,14 @@ def focus_page(port: int):
     if status >= 400:
         flash(f"Could not start focus mode (HTTP {status}).", "error")
         return redirect(url_for("index"))
+    try:
+        live = daemon_json("/settings")
+    except RuntimeError:
+        live = None
     return render_template(
         "focus.html",
         port=port,
-        wavelength=PORT_WAVELENGTH.get(port, "?"),
+        wavelength=_wavelengths(live).get(port, "?"),
     )
 
 

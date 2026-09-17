@@ -37,13 +37,18 @@ class Channel(NamedTuple):
     wavelength_nm: int
 
 
-# Port → intended filter wavelength. Without filters bolted on, all three
-# channels see the same scene; the labels are aspirational. Move this into
-# settings.json if/when filter mapping ever needs to vary per deployment.
+# The ports are fixed hardware: port N is a physical socket on the mux.
+#
+# The wavelengths here are only a FALLBACK. Which filter is bolted to which
+# camera is recorded in settings.json under "wavelengths" and read live at
+# capture time, because it is a hardware fact that changes when filters are
+# swapped - the payload has two standard sets, 750/770/780 for range and
+# 760/770/780 for close work. Editing the numbers below does not change what
+# a capture is named; change the setting.
 CHANNELS: list[Channel] = [
-    Channel(port=0, wavelength_nm=762),
-    Channel(port=1, wavelength_nm=766),
-    Channel(port=2, wavelength_nm=770),
+    Channel(port=0, wavelength_nm=750),
+    Channel(port=1, wavelength_nm=770),
+    Channel(port=2, wavelength_nm=780),
 ]
 
 

@@ -5,7 +5,7 @@ Curated subset of picamera2 controls — the eight the operator actually
 tunes — plus a shared/per-camera advanced-mode switch.
 
 Shared mode (default): all three cameras get the same controls. The
-ratio math (S766+S770)/(2·S762) only makes sense when channels are
+K-index only makes sense when the channels are
 radiometrically comparable, so this is the default.
 
 Advanced mode: per-camera overrides become live. The UI shows a red
@@ -108,6 +108,11 @@ def _default_settings() -> dict:
         "advanced_mode": False,
         "per_camera": {"0": {}, "1": {}, "2": {}},
         "rotations": {"0": 0, "1": 0, "2": 0},
+        # Which filter is physically bolted to which camera. This is the
+        # record of a hardware fact, and every capture filename is derived
+        # from it, so it must be set to match reality and verified - see
+        # docs/filter_assignment.md. Defaults to the long-range set.
+        "wavelengths": {"0": 750, "1": 770, "2": 780},
         "burst_count": 1,
         "timer": {"enabled": False, "interval_seconds": 60},
     }
@@ -153,6 +158,35 @@ def _coerce_rotation(value) -> int:
     if n not in ROTATIONS_ALLOWED:
         raise ValueError(f"rotation must be one of {ROTATIONS_ALLOWED}")
     return n
+
+
+def _coerce_wavelengths(value) -> dict[str, int]:
+    """Port -> filter centre wavelength in nm.
+
+    Deliberately permissive about which wavelength sits on which port: the
+    filters are bolted on by hand and either of the two standard sets may be
+    fitted, so the software records what the operator says is there rather
+    than enforcing a particular arrangement. It does reject values outside
+    the near-infrared band the payload works in, which catches a typo like
+    77 or 7700 before it reaches a filename.
+    """
+    if not isinstance(value, dict):
+        raise ValueError("wavelengths must be an object of port -> nm")
+    out: dict[str, int] = {}
+    for k, v in value.items():
+        port = str(int(k))
+        if port not in ("0", "1", "2"):
+            raise ValueError(f"unknown camera port {k}")
+        nm = int(v)
+        if not (700 <= nm <= 900):
+            raise ValueError(
+                f"wavelength {nm} nm for cam{port} is outside 700-900 nm; "
+                f"the standard sets are 750/770/780 and 760/770/780")
+        out[port] = nm
+    if len(out) == 3 and len(set(out.values())) != 3:
+        raise ValueError(
+            f"two cameras cannot carry the same filter: {out}")
+    return out
 
 
 def _coerce_rotations(value: dict) -> dict[str, int]:
@@ -262,6 +296,11 @@ class SettingsStore:
                 merged["rotations"] = _coerce_rotations(stored["rotations"])
             except ValueError:
                 pass
+        if "wavelengths" in stored and isinstance(stored["wavelengths"], dict):
+            try:
+                merged["wavelengths"] = _coerce_wavelengths(stored["wavelengths"])
+            except ValueError:
+                pass
         return merged
 
     def snapshot(self) -> dict:
@@ -291,6 +330,12 @@ class SettingsStore:
                     k: v for k, v in patch["rotations"].items() if k in new["rotations"]
                 }}
                 new["rotations"] = _coerce_rotations(merged_rot)
+            if "wavelengths" in patch and isinstance(patch["wavelengths"], dict):
+                merged_wl = {**new["wavelengths"], **{
+                    k: v for k, v in patch["wavelengths"].items()
+                    if k in new["wavelengths"]
+                }}
+                new["wavelengths"] = _coerce_wavelengths(merged_wl)
             self._data = new
             self._save()
             return copy.deepcopy(self._data)
@@ -324,3 +369,16 @@ class SettingsStore:
     def rotation_for(self, port: int) -> int:
         with self._lock:
             return int(self._data["rotations"].get(str(port), 0))
+
+    def wavelength_for(self, port: int) -> int:
+        """Centre wavelength of the filter fitted to this camera, in nm.
+
+        Every capture filename is built from this, so it is the record of
+        which physical filter is on which physical camera.
+        """
+        with self._lock:
+            return int(self._data["wavelengths"].get(str(port), 0))
+
+    def wavelengths(self) -> dict[str, int]:
+        with self._lock:
+            return dict(self._data["wavelengths"])

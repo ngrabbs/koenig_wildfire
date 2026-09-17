@@ -72,6 +72,7 @@
     .titlebar h1 { margin: 0; }
     .power-controls { display: flex; gap: 0.5em; }
     .power-controls form { margin: 0; }
+    .hint { color: #555; font-size: 0.9em; margin: 0.3em 0 0.8em; }
 
     .gallery { display: grid;
                grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
@@ -198,6 +199,32 @@
       </div>
 
       <div class="settings-section">
+        <h3>Filter fitted to each camera</h3>
+        <p class="hint">
+          Which filter is physically bolted to which camera. <strong>Every
+          capture filename is built from this</strong>, so it has to match the
+          hardware. After changing a filter, set it here and then verify:
+          cover one lens, take a capture, and check that the file named for
+          that wavelength is the dark one.
+        </p>
+        <div class="grid">
+          {% for port in camera_ports %}
+          <div class="field">
+            <label for="wavelength_{{ port }}">Camera {{ port }}</label>
+            <select id="wavelength_{{ port }}" name="wavelength_{{ port }}">
+              {% for nm in [750, 760, 770, 780] %}
+              <option value="{{ nm }}"
+                {% if settings.wavelengths[port|string]|int == nm %}selected{% endif %}>
+                {{ nm }} nm{% if nm == 770 %} — on-line{% else %} — continuum{% endif %}
+              </option>
+              {% endfor %}
+            </select>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+
+      <div class="settings-section">
         <h3>Camera mounting orientation (always per-camera)</h3>
         <p style="font-size: 0.85em; color: #666; margin: 0.2em 0 0.6em;">
           Some cameras can't be mounted right-side up due to physical fit.
@@ -231,11 +258,9 @@
         <div class="per-cam">
           {% for port in camera_ports %}
             {% set overrides = settings.per_camera[port|string] %}
-            <h3>Camera {{ port }} overrides
-              {% if port == 0 %} &mdash; 762 nm (off-line)
-              {% elif port == 1 %} &mdash; 766 nm (on-line)
-              {% else %} &mdash; 770 nm (on-line)
-              {% endif %}
+            <h3>Camera {{ port }} overrides &mdash;
+              {{ port_wavelengths[port] }} nm
+              {% if port_wavelengths[port] == 770 %}(on-line){% else %}(continuum){% endif %}
             </h3>
             <div class="grid">
               {% for name in control_names %}
@@ -277,7 +302,7 @@
     {% for port in camera_ports %}
     <form action="/focus/{{ port }}" method="get">
       <button class="focus" type="submit">Focus cam {{ port }}
-        ({% if port == 0 %}762{% elif port == 1 %}766{% else %}770{% endif %} nm)</button>
+        ({{ port_wavelengths[port] }} nm)</button>
     </form>
     {% endfor %}
     {% if images %}

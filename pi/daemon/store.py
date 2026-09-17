@@ -3,9 +3,9 @@
 Filenames are UTC-timestamp-prefixed so a three-channel burst sorts
 together in alphabetical order, e.g.
 
-    20260525_211238_123_cam0_762nm.jpg
-    20260525_211238_123_cam1_766nm.jpg
-    20260525_211238_123_cam2_770nm.jpg
+    20260917_211238_123_cam0_750nm.jpg
+    20260917_211238_123_cam1_770nm.jpg
+    20260917_211238_123_cam2_780nm.jpg
 """
 from __future__ import annotations
 from datetime import datetime, timezone
@@ -25,14 +25,21 @@ class ImageStore:
         self.root = Path(root)
         self.root.mkdir(parents=True, exist_ok=True)
 
-    def burst_path_fn(self, ext: str = "jpg") -> Callable:
+    def burst_path_fn(self, ext: str = "jpg", wavelength_for=None) -> Callable:
         """Return a `(channel) -> Path` callable that gives each channel of a
         single burst a shared timestamp prefix and a unique cam/wavelength
-        suffix."""
+        suffix.
+
+        `wavelength_for(port)` comes from settings, which is the record of
+        which filter is physically on which camera. The filename is the only
+        place that mapping is carried once the data leaves the payload, so it
+        is read live rather than taken from a compiled-in default.
+        """
         ts = _utc_stamp()
 
         def make(channel) -> Path:
-            name = f"{ts}_cam{channel.port}_{channel.wavelength_nm}nm.{ext}"
+            nm = wavelength_for(channel.port) if wavelength_for else channel.wavelength_nm
+            name = f"{ts}_cam{channel.port}_{nm}nm.{ext}"
             return self.root / name
 
         return make

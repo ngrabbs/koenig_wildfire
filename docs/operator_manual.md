@@ -171,7 +171,20 @@ There are two ways to delete:
 Deletion is immediate and **cannot be undone** — there is no recycle
 bin. If you might need a picture later, save it to your laptop first.
 
-### Changing camera settings
+### Which filter is on which camera
+
+The **Filter fitted to each camera** panel records which narrowband filter is
+physically bolted to each lens. Every capture filename is built from it.
+
+**If you change a filter, change this setting, then prove it.** Cover one
+lens, take a capture, and check that the dark file is the one named for the
+wavelength you covered. If a different file is dark, the setting is wrong.
+
+Getting it wrong does not produce an error — the pictures look normal and the
+analysis runs. It just produces the wrong answer. Full procedure in
+`filter_assignment.md`.
+
+## Changing camera settings
 
 Click **Camera settings** at the top of the page to expand the panel.
 Change what you need, then click **Save settings** at the bottom — nothing

@@ -39,6 +39,7 @@ Then, depending on what you are working on:
 
 | If you are… | Read |
 |---|---|
+| Fitting or changing filters | [`docs/filter_assignment.md`](docs/filter_assignment.md) — and how to prove the mapping |
 | Setting up a fresh Pi | [`docs/hardware_setup.md`](docs/hardware_setup.md) |
 | Touching the capture code | [`docs/architecture.md`](docs/architecture.md) |
 | Running the alignment yourself | [`docs/alignment_walkthrough.md`](docs/alignment_walkthrough.md) — four commands and worked examples |
@@ -72,11 +73,16 @@ Not yet done, in the order it matters:
 - **Capture is sequential and takes ~2 s** for all three channels, which is
   the dominant error source on a moving aircraft.
 
-> **Careful with the filenames.** Captures are named `..._cam0_762nm.jpg` and
-> so on, but those wavelengths are the *old* intended assignment and no
-> filters are fitted. They are labels, not measurements. The rename to
-> 750 / 770 / 780 lands when the filters do, so that the optical change and
-> the label change happen together and no data set is ambiguous.
+> **Filenames carry the filter assignment.** A capture is named
+> `..._cam1_770nm.jpg` from the `wavelengths` setting, which records which
+> filter is physically on which camera. Get that setting wrong and the
+> K-index computes something meaningless without complaining, so **verify it
+> by occlusion before any session that matters** —
+> [`docs/filter_assignment.md`](docs/filter_assignment.md).
+>
+> Captures dated before 2026-09-17 are named 762 / 766 / 770 under a
+> superseded scheme, with no filters fitted. Those are channel identifiers,
+> not measurements.
 
 ---
 

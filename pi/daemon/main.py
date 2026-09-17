@@ -67,7 +67,7 @@ def _run_one_capture_cycle():
     n = settings.burst_count()
     return cameras.capture_bursts(
         n=n,
-        path_fn_factory=lambda: store.burst_path_fn("jpg"),
+        path_fn_factory=lambda: store.burst_path_fn("jpg", settings.wavelength_for),
         controls_for=settings.controls_for,
         resolution=settings.resolution(),
         rotation_for=settings.rotation_for,
