@@ -355,6 +355,34 @@ class Cameras:
         See docs/flight_findings.md.
         """
         # Phase 1 — grab. One camera open at a time; see the class docstring.
+        #
+        # DO NOT "optimise" this by holding the three cameras open and only
+        # starting them one at a time. It was measured on 19 Sep 2026 and it
+        # silently returns the same camera three times.
+        #
+        # The appeal is real: opening and closing costs about 1.4 s of the
+        # 2.1 s cycle, close() alone being roughly half, while a repeat grab
+        # from an already-open camera is 60 ms. Holding them open looks like
+        # a 2.2x win - the measured cycle drops from 2.93 s to 1.34 s.
+        #
+        # It is not a win. It is faster because it is reading one camera and
+        # skipping two mux switches. Correlating each frame against a
+        # known-good one-at-a-time reference:
+        #
+        #     captured   vs ref0   vs ref1   vs ref2
+        #         cam0     0.164   -0.290    1.000   <- actually cam2
+        #         cam1     0.164   -0.290    1.000   <- actually cam2
+        #         cam2     0.160   -0.290    0.999
+        #
+        # Opening a Picamera2 is what enables its video-mux link, not
+        # start(). The last camera opened wins and every read comes from it
+        # whatever object you start. This is the August duplicate-frame bug,
+        # and timings alone look excellent while it happens - which is how it
+        # shipped the first time.
+        #
+        # pi/tests/test_mux_routing.py reproduces it. Any change to this loop
+        # must be checked against a correlation reference, never against the
+        # clock.
         grabbed: list[tuple[Channel, Path, "object"]] = []
         try:
             for ch in CHANNELS:
