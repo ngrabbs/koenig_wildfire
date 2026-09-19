@@ -36,13 +36,14 @@ Wiring, for when it is time
 One output drives all three XTRIG inputs in parallel. They are high-impedance
 CMOS inputs drawing microamps, so fan-out is not a concern.
 
-    BCM 23 (pin 16) ┬── 100R ── XTRIG cam0
+    BCM 21 (pin 40) ┬── 100R ── XTRIG cam0
                     ├── 100R ── XTRIG cam1
                     └── 100R ── XTRIG cam2
 
-    GND (pin 14) ───┴── common ground to all three camera boards
+    GND (pin 39) ───┴── common ground to all three camera boards
 
-Header pins 14 and 16 are adjacent, which makes for a tidy two-wire harness.
+Pins 39 and 40 are the last pair on the header, so the harness is two
+adjacent wires off the corner.
 
 - **Common ground is mandatory.** Without a shared return the input sees an
   undefined voltage and may trigger on noise or not at all. If a separate
@@ -70,11 +71,18 @@ import time
 
 log = logging.getLogger(__name__)
 
-# BCM 23 is header pin 16. Do NOT move this to 4, 17 or 18: the multiplexer
-# overlay claims those three as its camera-select lines (mux-gpios in
-# payload-mux-4port), and BCM 6 is taken too. Claiming one of them fails with
-# "GPIO busy" if you are lucky, and silently fights the mux if you are not.
-DEFAULT_PIN = 23
+# BCM 21 is header pin 40 - the corner. Pin 39 beside it is ground, so the
+# whole harness is two adjacent pins, and being on the end it is findable by
+# feel and unlikely to end up under a HAT.
+#
+# BCM 16 (pin 36) is the tested alternative; pass --pin 16. Its nearest
+# ground is pin 34, one pin further along.
+#
+# Do NOT use 4, 17 or 18: the multiplexer overlay claims those as its
+# camera-select lines (mux-gpios in payload-mux-4port), and BCM 6 is taken
+# too. Claiming one fails with "GPIO busy" if you are lucky, and fights the
+# mux if you are not.
+DEFAULT_PIN = 21
 DEFAULT_WIDTH_US = 100    # comfortably above the sensor's minimum
 DEFAULT_ACTIVE_HIGH = True
 
