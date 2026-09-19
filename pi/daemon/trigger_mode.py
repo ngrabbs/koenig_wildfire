@@ -32,6 +32,37 @@ architecture cheaply, and an armed sensor that fires on demand may allow a
 much shorter gap between channels than the present open/configure/close
 cycle.
 
+STATUS AS OF 19 SEP 2026 - HALF WORKING
+---------------------------------------
+Arming works and is verified. An armed sensor holds off frames indefinitely;
+disarmed, the same camera returns a frame in 0.10 s. That is the sensor
+genuinely honouring trigger mode, reproduced across many runs. It needed no
+patched kernel driver, which was the part expected to be hard.
+
+**No pulse has yet produced a frame.** Driving XTR does not release an armed
+sensor. Ruled out so far, all with the controls passing in the same run:
+
+    polarity      active-high and active-low        both: no frame
+    pulse width   100 us, 1 ms, 10 ms, 50 ms        all:  no frame
+
+A 500x spread of widths in both polarities says the failure is upstream of
+anything software reaches. The unverified hop is the wire between the Pi
+header and the camera's XTR pad - a read-back on the GPIO confirms the Pi end
+drives correctly, but an unconnected far end looks exactly the same. Check
+continuity from header pin 40 to XTR and pin 39 to the board ground, with
+power off, and confirm which pad is XTR against 1-4Images/Conection.png in
+InnoMaker's repo. The trigger and strobe headers sit next to each other and
+have already been confused once.
+
+A trap worth knowing, because it produced a false positive here: opening the
+camera clears the trigger register - 0x30AE reads 0x01 after arming and 0x00
+after start(). The sensor nevertheless stays gated, so the register is not
+authoritative once the pipeline is up. What that does mean is that a capture
+run before an arming will have disarmed the sensor, and the next capture then
+free-runs. A "triggered" frame arriving in the same ~0.1 s as an untriggered
+one is not a triggered frame. Re-arm immediately before every attempt, and
+treat free-run latency as the signature of an unarmed sensor.
+
 CAUTION
 -------
 A sensor in trigger mode produces NO frames until pulsed. Enable it on a
