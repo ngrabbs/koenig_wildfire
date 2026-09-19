@@ -72,6 +72,17 @@ RotationFn = Callable[[int], int]
 # sharpness, low enough to stream smoothly over wifi.
 FOCUS_PREVIEW_SIZE = (1332, 990)
 
+# How many consecutive frame-wait timeouts before focus gives up on a stream
+# that has stopped producing. At the 2 s default wait that is about 30 s.
+#
+# This bound is the whole point. Without it a stalled encoder left iter_frames
+# spinning in a loop with no exit: the generator never returned, so the HTTP
+# response never finished, so stop_focus was never reached, so the capture
+# lock stayed held and every later capture answered 409 until the daemon was
+# restarted. From the field that looks like "the preview came up for a few
+# seconds, then the whole thing froze" - which is exactly what it was.
+FOCUS_STALL_GIVEUP = 15
+
 
 def _encode_jpeg(frame, path: Path, quality: int = 90) -> None:
     """Write a captured array to JPEG.
@@ -515,12 +526,29 @@ class Cameras:
                             int(consecutive_silent * timeout),
                             output.encoder_frame_count, delivered,
                         )
+                    if consecutive_silent >= FOCUS_STALL_GIVEUP:
+                        log.error(
+                            "focus stream dead after %ds with no frame "
+                            "(encoder produced %d, delivered %d) - tearing the "
+                            "session down so the camera is usable again",
+                            int(consecutive_silent * timeout),
+                            output.encoder_frame_count, delivered,
+                        )
+                        break
                     continue
                 consecutive_silent = 0
                 frame = output.frame
             if frame:
                 delivered += 1
                 yield frame
+
+        # Only reached by the stall break above. Release the camera here
+        # rather than leaving it to the caller: the point of giving up is
+        # that the next capture works without a daemon restart.
+        try:
+            self.stop_focus()
+        except Exception:
+            log.exception("tearing down a stalled focus session failed")
 
     def close(self) -> None:
         self.stop_focus()
