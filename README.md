@@ -19,6 +19,16 @@ routinely.
 
 The physics is in [`docs/k_line_primer.md`](docs/k_line_primer.md).
 
+> ### It works
+>
+> On 20 September 2026 the payload recorded a **potassium emission excess of
+> 6–10× the interpolated continuum** on an open flame, and read ≈ 0 on the
+> same fire minutes later once it had died back to embers. The instrument
+> distinguishes a flame from equally hot embers.
+>
+> **[`docs/potassium_detection.md`](docs/potassium_detection.md)** — the
+> evidence, the controls, and what is not yet established.
+
 ---
 
 ## Start here
@@ -45,6 +55,7 @@ Then, depending on what you are working on:
 | Running the alignment yourself | [`docs/alignment_walkthrough.md`](docs/alignment_walkthrough.md) — four commands and worked examples |
 | Working on image alignment | [`docs/alignment_method.md`](docs/alignment_method.md) — the method, with the maths |
 | Understanding why it is built this way | [`docs/flight_findings.md`](docs/flight_findings.md) — what the flight taught us, and the decisions taken |
+| Seeing what the instrument has actually detected | [`docs/potassium_detection.md`](docs/potassium_detection.md) — the 20 Sep burn, with controls |
 | Fighting the camera multiplexer | [`pi/dtoverlay/README.md`](pi/dtoverlay/README.md) |
 
 ---
