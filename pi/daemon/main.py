@@ -29,7 +29,7 @@ from pathlib import Path
 from apscheduler.schedulers.background import BackgroundScheduler
 from flask import Flask, jsonify, request, send_file, abort, Response
 
-from .camera_jetson import BusyError, Cameras
+from .camera_backend import load_backend
 from .store import ImageStore
 from ..shared.settings import (SettingsStore, set_supported_resolutions,
                                supported_resolutions)
@@ -48,6 +48,13 @@ log = logging.getLogger("payload.daemon")
 # runs before app.run() needs logging already live to be diagnosable.
 logging.basicConfig(level=logging.INFO,
                     format="%(asctime)s %(name)s %(levelname)s %(message)s")
+
+# Which camera stack to drive is a property of the board, not of this file:
+# the Pi backend needs picamera2, the Jetson one needs OpenCV and
+# nvarguscamerasrc, and neither import survives on the other machine. Resolved
+# here rather than at module scope so the losing import is never attempted,
+# and after basicConfig above so the choice is actually logged.
+BusyError, Cameras = load_backend()
 
 app = Flask(__name__)
 store = ImageStore(STORE_ROOT)
