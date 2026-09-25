@@ -33,6 +33,7 @@ from .camera_jetson import BusyError, Cameras
 from .capture_service import CaptureRequest, CaptureResponse, CaptureService, CaptureFailure
 from .store import ImageStore
 from .processing_service import CalibrationConfig, ProcessingService
+from .can_listener import CanListener
 from ..shared.settings import (SettingsStore, set_supported_resolutions,
                                supported_resolutions)
 
@@ -273,7 +274,18 @@ def system_shutdown():
 
 
 def main():
-    app.run(host=LISTEN_HOST, port=LISTEN_PORT, threaded=True)
+    listener = None
+    if os.environ.get("PAYLOAD_CAN_ENABLED") == "1":
+        listener = CanListener(capture_service.run)
+        try:
+            listener.start()
+        except OSError:
+            log.exception("CAN unavailable on vcan0; HTTP daemon will continue")
+    try:
+        app.run(host=LISTEN_HOST, port=LISTEN_PORT, threaded=True)
+    finally:
+        if listener is not None:
+            listener.stop()
 
 
 if __name__ == "__main__":

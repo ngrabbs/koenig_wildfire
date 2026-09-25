@@ -24,7 +24,7 @@ log = logging.getLogger("payload.capture_service")
 @dataclass(frozen=True)
 class CaptureRequest:
     source: Literal["live", "simulation"] = "live"
-    caller: Literal["http", "timer"] = "http"
+    caller: Literal["http", "timer", "can"] = "http"
     simulation_stem: str | None = None
 
 
@@ -96,7 +96,7 @@ class CaptureService:
                 CaptureFailure(stage, code, message) if code else None,
             )
 
-        if request.source not in ("live", "simulation") or request.caller not in ("http", "timer"):
+        if request.source not in ("live", "simulation") or request.caller not in ("http", "timer", "can"):
             return result("error", code="INVALID_REQUEST", message="unknown source or caller")
         if ((request.source == "simulation" and not isinstance(request.simulation_stem, str))
                 or (request.source == "live" and request.simulation_stem is not None)):
