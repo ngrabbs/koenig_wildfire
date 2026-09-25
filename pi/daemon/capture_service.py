@@ -1,6 +1,6 @@
-"""Shared acquisition boundary. Phase 1 performs no scientific processing.
+"""Shared acquisition boundary with a fail-closed calibration gate.
 
-READY_TRIPLET validates grouping and spectral metadata only, not image pixels
+Triplet validation covers grouping and spectral metadata, not image pixels
 or radiometric calibration. The service never constructs a camera instance.
 """
 from __future__ import annotations
@@ -16,6 +16,7 @@ from uuid import uuid4
 from .store import (FrameRef, ImageStore, TripletSelectionError,
                     parse_capture_filename, select_stored_triplet)
 from ..shared.settings import SettingsStore
+from .processing_service import ProcessingResult, ProcessingService
 
 log = logging.getLogger("payload.capture_service")
 
@@ -46,7 +47,8 @@ class CaptureImage:
 class CaptureEvent:
     stem: str
     captures: list[CaptureImage]
-    processing_status: Literal["READY_TRIPLET", "SKIPPED_INCOMPLETE_TRIPLET"]
+    processing_status: Literal["WAITING_FOR_CALIBRATION", "SKIPPED_INCOMPLETE_TRIPLET"]
+    processing: ProcessingResult | None = None
 
 
 @dataclass(frozen=True)
@@ -75,6 +77,7 @@ class CaptureService:
         self, *, settings: SettingsStore, store: ImageStore,
         live_capture: Callable, busy_error: type[Exception],
         simulation_root: Path | None = None,
+        processor: ProcessingService | None = None,
     ):
         self.settings = settings
         self.store = store
@@ -82,6 +85,7 @@ class CaptureService:
         self.busy_error = busy_error
         self.simulation_root = simulation_root if simulation_root is not None else store.root
         self._busy = threading.Lock()
+        self.processor = processor if processor is not None else ProcessingService()
 
     def run(self, request: CaptureRequest) -> CaptureResponse:
         request_id = uuid4().hex
@@ -120,8 +124,12 @@ class CaptureService:
                 ready = len(group) == 3 and set(waves) == {750, 770, 780}
                 images = [CaptureImage(f.port, f.wavelength_nm, f.path.name, f.path.stat().st_size)
                           for f in group]
-                events.append(CaptureEvent(stem, images, "READY_TRIPLET" if ready
-                                           else "SKIPPED_INCOMPLETE_TRIPLET"))
+                stage = "processing"
+                processing = self.processor.process(group) if ready else None
+                events.append(CaptureEvent(
+                    stem, images, processing.processing_status if processing is not None
+                    else "SKIPPED_INCOMPLETE_TRIPLET", processing))
+                stage = "validate"
             return result("success", events=events)
         except self.busy_error as exc:
             return result("busy", stage="acquire", code="BUSY", message=str(exc))

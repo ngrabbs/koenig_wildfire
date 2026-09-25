@@ -32,6 +32,7 @@ from flask import Flask, jsonify, request, send_file, abort, Response
 from .camera_jetson import BusyError, Cameras
 from .capture_service import CaptureRequest, CaptureResponse, CaptureService, CaptureFailure
 from .store import ImageStore
+from .processing_service import CalibrationConfig, ProcessingService
 from ..shared.settings import (SettingsStore, set_supported_resolutions,
                                supported_resolutions)
 
@@ -61,11 +62,13 @@ settings.reload()
 capture_service = CaptureService(
     settings=settings, store=store, live_capture=cameras.capture_bursts,
     busy_error=BusyError,
+    processor=ProcessingService(CalibrationConfig(
+        correction_path=os.environ.get("PAYLOAD_CALIBRATION_PATH"))),
 )
 
 
 def _run_one_capture_cycle(request: CaptureRequest | None = None) -> CaptureResponse:
-    """Shared manual/timer acquisition; no scientific processing in Phase 1."""
+    """Shared acquisition and calibration gate; no scientific processing yet."""
     return capture_service.run(request if request is not None else CaptureRequest())
 
 

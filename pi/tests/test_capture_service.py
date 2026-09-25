@@ -1,4 +1,4 @@
-"""Phase 1 acquisition tests; no camera, scheduler, or science dependencies.
+"""Acquisition and calibration-gate tests; hardware and scheduler are stubbed.
 
 Run: python -m unittest pi.tests.test_capture_service
 """
@@ -102,6 +102,7 @@ class CaptureTests(unittest.TestCase):
         self.assertEqual(result.status, "success")
         self.assertEqual(result.decision, "NOT_CALIBRATED")
         self.assertEqual(result.events[0].processing_status, "SKIPPED_INCOMPLETE_TRIPLET")
+        self.assertIsNone(result.events[0].processing)
         self.assertEqual(len(self.calls), 1)
         self.assertEqual(set(result.to_dict()["captures"][0]), {"port", "wavelength_nm", "id", "bytes"})
 
@@ -127,7 +128,12 @@ class CaptureTests(unittest.TestCase):
         self.assertEqual(result.status, "success")
         self.assertEqual(result.decision, "NOT_CALIBRATED")
         self.assertEqual(len(result.events), 1)
-        self.assertEqual(result.events[0].processing_status, "READY_TRIPLET")
+        self.assertEqual(result.events[0].processing_status, "WAITING_FOR_CALIBRATION")
+        self.assertEqual(result.events[0].processing.code, "CALIBRATION_NOT_CONFIGURED")
+        self.assertEqual(result.events[0].processing.decision, "NOT_CALIBRATED")
+        self.assertEqual(result.source, "simulation")
+        self.assertEqual(result.events[0].stem, STEM)
+        self.assertEqual([f.id for f in result.events[0].captures], [p.name for p in paths])
         self.assertEqual(self.calls, [])
         self.assertEqual(original, {p: (p.read_bytes(), p.stat().st_mtime_ns) for p in paths})
 
@@ -206,6 +212,7 @@ class AdapterTests(unittest.TestCase):
         stubs["pi.daemon.main"] = module
         with patch.dict(sys.modules, stubs), patch.dict(os.environ, {
             "PAYLOAD_STORE": str(root / "images"), "PAYLOAD_SETTINGS": str(root / "settings.json"),
+            "PAYLOAD_CALIBRATION_PATH": str(root / "missing-calibration.npz"),
         }), patch.object(atexit, "register"):
             spec.loader.exec_module(module)
         self.daemon = module
@@ -241,7 +248,8 @@ class AdapterTests(unittest.TestCase):
             (self.daemon.store.root / f"{STEM}_cam{port}_{wave}nm.jpg").write_bytes(b"stored")
         response = self.client.post("/capture", json={"source": "simulation", "simulation_stem": STEM})
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json["events"][0]["processing_status"], "READY_TRIPLET")
+        self.assertEqual(response.json["events"][0]["processing_status"], "WAITING_FOR_CALIBRATION")
+        self.assertEqual(response.json["events"][0]["processing"]["code"], "CALIBRATION_PATH_UNAVAILABLE")
         self.assertEqual(response.json["decision"], "NOT_CALIBRATED")
         self.camera.capture_bursts.assert_not_called()
 
