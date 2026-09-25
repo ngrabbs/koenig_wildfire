@@ -2,7 +2,7 @@
 
 Endpoints (Phase 4):
   GET    /healthz           liveness probe
-  POST   /capture           run burst_count consecutive 3-channel bursts
+  POST   /capture           live burst_count captures, or select a stored triplet
   GET    /images            list image ids (newest first)
   GET    /images/<id>       serve the JPEG bytes
   DELETE /images/<id>       delete one
@@ -17,7 +17,7 @@ Endpoints (Phase 4):
 A background APScheduler runs the timer when settings.timer.enabled is true,
 firing capture_bursts(burst_count) at settings.timer.interval_seconds. If a
 capture is already in flight (manual, scheduled, or focus), the new attempt
-returns BusyError (HTTP 409 for manual; silently dropped for scheduled).
+returns a busy result (HTTP 409 for manual; logged and dropped for scheduled).
 """
 from __future__ import annotations
 import atexit
@@ -30,6 +30,7 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from flask import Flask, jsonify, request, send_file, abort, Response
 
 from .camera_jetson import BusyError, Cameras
+from .capture_service import CaptureRequest, CaptureResponse, CaptureService, CaptureFailure
 from .store import ImageStore
 from ..shared.settings import (SettingsStore, set_supported_resolutions,
                                supported_resolutions)
@@ -41,11 +42,8 @@ LISTEN_PORT = int(os.environ.get("PAYLOAD_DAEMON_PORT", "8001"))
 
 log = logging.getLogger("payload.daemon")
 
-# Configure logging here, at import, rather than inside main(). Cameras() is
-# constructed at module level below and primes the hardware in its
-# constructor; with basicConfig still unset at that point, every message it
-# emits — including a failure to prime a camera — went nowhere. Anything that
-# runs before app.run() needs logging already live to be diagnosable.
+# Configure logging before constructing the backend and shared service so
+# startup diagnostics are available before app.run().
 logging.basicConfig(level=logging.INFO,
                     format="%(asctime)s %(name)s %(levelname)s %(message)s")
 
@@ -60,18 +58,15 @@ set_supported_resolutions(cameras.available_sizes())
 # was validated against the fallback list. Re-read it now that the real
 # modes are known, or a valid stored value gets silently dropped.
 settings.reload()
+capture_service = CaptureService(
+    settings=settings, store=store, live_capture=cameras.capture_bursts,
+    busy_error=BusyError,
+)
 
 
-def _run_one_capture_cycle():
-    """One full capture event: burst_count bursts at current settings."""
-    n = settings.burst_count()
-    return cameras.capture_bursts(
-        n=n,
-        path_fn_factory=lambda: store.burst_path_fn("jpg", settings.wavelength_for),
-        controls_for=settings.controls_for,
-        resolution=settings.resolution(),
-        rotation_for=settings.rotation_for,
-    )
+def _run_one_capture_cycle(request: CaptureRequest | None = None) -> CaptureResponse:
+    """Shared manual/timer acquisition; no scientific processing in Phase 1."""
+    return capture_service.run(request if request is not None else CaptureRequest())
 
 
 # ---------- Scheduler ----------------------------------------------------
@@ -83,12 +78,11 @@ _TIMER_JOB_ID = "payload-timer"
 
 
 def _timer_tick():
-    try:
-        _run_one_capture_cycle()
-    except BusyError:
+    result = _run_one_capture_cycle(CaptureRequest(caller="timer"))
+    if result.status == "busy":
         log.info("timer tick dropped: capture already in progress")
-    except Exception:
-        log.exception("timer tick failed")
+    elif result.status == "error":
+        log.error("timer tick failed: %s", result.failure)
 
 
 def _apply_timer():
@@ -127,19 +121,23 @@ def healthz():
 
 @app.post("/capture")
 def capture():
-    try:
-        results = _run_one_capture_cycle()
-    except BusyError as e:
-        return jsonify(error=str(e), busy=True), 409
-    return jsonify(captures=[
-        {
-            "port": r.port,
-            "wavelength_nm": r.wavelength_nm,
-            "id": r.path.name,
-            "bytes": r.path.stat().st_size,
-        }
-        for r in results
-    ])
+    body = request.get_json(silent=True) if request.is_json else {}
+    if not isinstance(body, dict) or set(body) - {"source", "simulation_stem"}:
+        result = CaptureResponse(
+            "", "live", "http", "error",
+            failure=CaptureFailure("request", "INVALID_REQUEST", "expected source and optional simulation_stem JSON fields"),
+        )
+    else:
+        result = _run_one_capture_cycle(CaptureRequest(
+            source=body.get("source", "live"),
+            simulation_stem=body.get("simulation_stem"),
+        ))
+    status = 200
+    if result.status == "busy":
+        status = 409
+    elif result.status == "error":
+        status = 400 if result.failure.stage in ("request", "validate") else 500
+    return jsonify(result.to_dict()), status
 
 
 @app.get("/images")

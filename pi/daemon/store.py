@@ -8,12 +8,92 @@ together in alphabetical order, e.g.
     20260917_211238_123_cam2_780nm.jpg
 """
 from __future__ import annotations
+from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Callable
 import re
 
 _ID_RE = re.compile(r"^[0-9A-Za-z_\-]+\.(jpg|jpeg|png)$")
+_STEM_RE = re.compile(r"\d{8}_\d{6}_\d{3}", re.ASCII)
+_FRAME_RE = re.compile(
+    r"(?P<stem>\d{8}_\d{6}_\d{3})_cam(?P<port>[0-2])_"
+    r"(?P<wavelength>\d{3})nm\.(?:jpe?g|png|tiff?)",
+    re.ASCII | re.IGNORECASE,
+)
+
+
+@dataclass(frozen=True)
+class FrameRef:
+    path: Path
+    stem: str
+    port: int
+    wavelength_nm: int
+
+
+class TripletSelectionError(ValueError):
+    """Invalid or ambiguous stored event, with a machine-readable reason."""
+
+    def __init__(self, code: str, message: str):
+        super().__init__(message)
+        self.code = code
+
+
+def _validate_stem(stem: str) -> None:
+    if not isinstance(stem, str) or not _STEM_RE.fullmatch(stem):
+        raise ValueError("expected timestamp stem YYYYMMDD_HHMMSS_mmm")
+    datetime.strptime(stem, "%Y%m%d_%H%M%S_%f")
+
+
+def parse_capture_filename(path: str | Path) -> FrameRef:
+    """Parse an original frame, not an aligned image or composite.
+
+    Parsing validates metadata only; it does not decode image pixels.
+    """
+    path = Path(path)
+    match = _FRAME_RE.fullmatch(path.name)
+    if not match:
+        raise ValueError(f"invalid capture filename: {path.name!r}")
+    _validate_stem(match["stem"])
+    wavelength = int(match["wavelength"])
+    if not 700 <= wavelength <= 900:
+        raise ValueError("capture wavelength must be in 700-900 nm")
+    return FrameRef(path, match["stem"], int(match["port"]), wavelength)
+
+
+def select_stored_triplet(directory: str | Path, stem: str) -> list[FrameRef]:
+    """Select exactly one original 750/770/780 event without changing files.
+
+    Extra candidates (including another extension for the same frame) are
+    errors. Never silently overwrite duplicates or mix timestamp stems.
+    Derived alignment/composite artifacts are not acquisition candidates.
+    """
+    try:
+        _validate_stem(stem)
+    except ValueError as exc:
+        raise TripletSelectionError("INVALID_STEM", str(exc)) from exc
+    directory = Path(directory).expanduser().resolve()
+    frames = []
+    for path in sorted(directory.iterdir()):
+        if not path.name.startswith(stem + "_cam"):
+            continue
+        if path.suffix.lower() not in (".jpg", ".jpeg", ".png", ".tif", ".tiff"):
+            continue
+        if path.stem.lower().endswith("_aligned"):
+            continue
+        if not path.is_file() or path.resolve().parent != directory:
+            raise TripletSelectionError("INVALID_FRAME", f"not a local frame: {path.name}")
+        try:
+            frames.append(parse_capture_filename(path))
+        except ValueError as exc:
+            raise TripletSelectionError("INVALID_FRAME", str(exc)) from exc
+    ports = [f.port for f in frames]
+    waves = [f.wavelength_nm for f in frames]
+    if len(set(ports)) != len(ports) or len(set(waves)) != len(waves):
+        raise TripletSelectionError("AMBIGUOUS_TRIPLET", "duplicate camera or wavelength")
+    if len(frames) != 3 or set(waves) != {750, 770, 780}:
+        raise TripletSelectionError("INCOMPLETE_TRIPLET", "need exactly one 750/770/780 nm triplet")
+    return sorted(frames, key=lambda frame: frame.port)
 
 
 def _utc_stamp() -> str:
