@@ -24,9 +24,9 @@ REPLY_ID = 0x300 + NODE_ID
 CAPTURE_NOW = bytes.fromhex("00 00 08 01 01")
 CAN_FRAME = struct.Struct("=IB3x8s")  # Linux struct can_frame, classic CAN
 CAN_FILTER = struct.Struct("=II")
-# Compare standard ID and EFF/RTR/ERR flags; extended, remote and error frames
-# must never turn into capture requests by masking their flags away.
-REQUEST_MASK = 0xE00007FF
+# Compare the standard ID and EFF/RTR flags. CAN_ERR_FLAG is not part of
+# this exact-ID filter mask; handle_frame still rejects flagged IDs.
+REQUEST_MASK = 0xC00007FF
 
 
 def handle_frame(

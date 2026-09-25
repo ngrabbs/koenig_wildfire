@@ -124,6 +124,9 @@ class PacketTests(unittest.TestCase):
 
 
 class TransportTests(unittest.TestCase):
+    def test_exact_standard_id_request_mask(self):
+        self.assertEqual(REQUEST_MASK, 0xC00007FF)
+
     def test_socket_setup_and_stop(self):
         sock = Mock()
         listener = CanListener(Mock())
@@ -136,7 +139,7 @@ class TransportTests(unittest.TestCase):
             listener.start()
             factory.assert_called_once_with(29, socket.SOCK_RAW, 1)
             sock.bind.assert_called_once_with(("vcan0",))
-            sock.setsockopt.assert_called_once_with(101, 1, CAN_FILTER.pack(REQUEST_ID, REQUEST_MASK))
+            sock.setsockopt.assert_called_once_with(101, 1, CAN_FILTER.pack(REQUEST_ID, 0xC00007FF))
             listener.stop()
             sock.close.assert_called_once()
             thread.return_value.join.assert_called_once_with(timeout=1.0)
