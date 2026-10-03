@@ -29,7 +29,7 @@ from pathlib import Path
 from apscheduler.schedulers.background import BackgroundScheduler
 from flask import Flask, jsonify, request, send_file, abort, Response
 
-from .camera import BusyError, Cameras
+from .camera_jetson import BusyError, Cameras
 from .store import ImageStore
 from ..shared.settings import (SettingsStore, set_supported_resolutions,
                                supported_resolutions)
