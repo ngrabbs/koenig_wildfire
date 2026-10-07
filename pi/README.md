@@ -33,8 +33,11 @@ input failures return `PROCESSING_FAILED` and preserve the captured event.
 
 ## Jetson / IHU CAN control (opt-in)
 
-The existing daemon can listen on Linux SocketCAN `vcan0` without creating
-another camera owner. On the Jetson/Linux test host, create the virtual bus:
+The existing daemon can listen on a selected Linux SocketCAN interface without
+creating another camera owner. `PAYLOAD_CAN_INTERFACE` defaults to `vcan0` when
+absent; an explicitly empty or whitespace-only value is rejected. CAN remains
+disabled unless `PAYLOAD_CAN_ENABLED=1`. On the Jetson/Linux test host, create
+the virtual bus:
 
 ```bash
 sudo modprobe vcan
@@ -76,8 +79,21 @@ Completion means the capture finished, never fire detection. The shared
 result still has `decision=NOT_CALIBRATED`. The listener handles requests
 serially; frames received during capture may wait in the kernel buffer.
 The camera read has no new timeout or cancellation in this proof of concept.
-CAN is disabled unless `PAYLOAD_CAN_ENABLED=1`; if `vcan0` is absent or
-SocketCAN unavailable, an error is logged and HTTP remains available.
+For a future, independently configured physical interface, select its name with
+`PAYLOAD_CAN_INTERFACE=can0` and retain `PAYLOAD_CAN_ENABLED=1`. The daemon does
+not discover, create, bring up, or configure interfaces, and does not set bitrate
+or fall back to another interface. Startup logs identify the requested interface.
+Only `vcan0` validation has been completed; physical CAN and real-IHU validation
+remain pending confirmed hardware, wiring, bitrate, and interface details.
+
+A CAN startup `OSError` (including an absent interface or blank name) is logged
+with the selected interface and HTTP serving continues. Existing camera and timer
+services remain available, including enabled timer scheduling. A receive or
+acceptance/completion send `OSError` stops the listener and closes its socket;
+HTTP and timer operation continue. There is no automatic reconnect or retry.
+After a transport failure or an interface appearing after startup, deliberately
+restart the daemon after resolving the cause. `/healthz` is not a CAN readiness
+check and may still report `ok=True` when CAN is unavailable.
 
 Tests: `python3 -m unittest pi.tests.test_can_listener -v`. The real SocketCAN
 test runs only on Linux with `vcan0` already up; all other tests use fakes.
@@ -147,6 +163,8 @@ sudo systemctl restart payload-daemon payload-webui
 
 | Var | Default | Effect |
 |---|---|---|
+| `PAYLOAD_CAN_ENABLED` | unset | CAN listener starts only when set to `1`. |
+| `PAYLOAD_CAN_INTERFACE` | `vcan0` | SocketCAN interface name; blank values are rejected. No interface configuration is performed. |
 | `PAYLOAD_STORE`        | `~/payload_images`       | Image storage directory. |
 | `PAYLOAD_DAEMON_HOST`  | `127.0.0.1`             | Daemon bind address. |
 | `PAYLOAD_DAEMON_PORT`  | `8001`                  | Daemon port. |

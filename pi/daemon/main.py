@@ -270,11 +270,15 @@ def system_shutdown():
 def main():
     listener = None
     if os.environ.get("PAYLOAD_CAN_ENABLED") == "1":
-        listener = CanListener(capture_service.run, timer=timer_service, status=_can_status)
+        interface = os.environ.get("PAYLOAD_CAN_INTERFACE", "vcan0")
+        log.info("CAN startup requested on interface %r", interface)
+        listener = CanListener(capture_service.run, interface=interface,
+                               timer=timer_service, status=_can_status)
         try:
             listener.start()
         except OSError:
-            log.exception("CAN unavailable on vcan0; HTTP daemon will continue")
+            log.exception("CAN unavailable on interface %r; HTTP daemon will continue",
+                          interface)
     try:
         app.run(host=LISTEN_HOST, port=LISTEN_PORT, threaded=True)
     finally:

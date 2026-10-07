@@ -1,10 +1,12 @@
 # Koenig IHU ↔ Jetson interface — Phase 5
 
-Audience: Austin / IHU implementation. Linux SocketCAN on `vcan0` only at
-this stage; no physical-bus bitrate, wiring, or termination assumptions.
+Audience: Austin / IHU implementation. Completed CAN validation used Linux
+SocketCAN `vcan0` only. Physical CAN validation and subsequent real-IHU validation
+remain future work; no physical-bus bitrate, wiring, or termination assumptions.
 Jetson node ID is `0x20`. Request CAN ID is `0x2A0`; reply CAN ID is `0x320`.
 These are 11-bit standard data frames, classic CAN (not CAN FD or RTR).
 An IHU node ID is not assigned by this interface; do not infer one from 0x2A0.
+IHU/controller node ID 0 is a project assumption pending Austin confirmation.
 The existing filter mask is `0xC00007FF`.
 
 **Service `0xF0` is a PROVISIONAL KOENIG PROJECT ALLOCATION**, defined by
@@ -164,6 +166,26 @@ Reconcile/quiesce the previous operation before beginning another session.
 No delivery, exactly-once, response-deadline, or immediate-stop guarantee exists.
 
 ## Simulator and validation
+
+The daemon starts CAN only with `PAYLOAD_CAN_ENABLED=1`. Set
+`PAYLOAD_CAN_INTERFACE` to select a SocketCAN interface; absent means `vcan0`.
+Explicitly empty or whitespace-only names are rejected before socket creation.
+For future physical testing, `can0` is an example name, not an assumption about
+available hardware. The daemon does not discover, create, bring up, configure,
+or set bitrate on any interface, and does not fall back to another interface.
+Startup and transport-failure logs identify the selected interface.
+
+A startup `OSError` is logged and HTTP serving continues; camera and timer
+services remain usable. Receive or acceptance/completion send `OSError` stops
+the listener and closes its socket without automatic reconnect or retry.
+HTTP liveness does not establish CAN readiness. Resolve the cause and deliberately
+restart the daemon for recovery. Reconnect/link-loss recovery is separate future work.
+
+Validation stages must be recorded separately: completed `vcan0` validation,
+future physical CAN validation with a physical peer, and future command/response
+validation against Austin's real IHU. Interface selection alone establishes none
+of the physical electrical or real-IHU results. No external transceiver is yet
+installed on the Orin Nano, and the transceiver model and bitrate remain unconfirmed.
 
 From the repository root on Linux:
 

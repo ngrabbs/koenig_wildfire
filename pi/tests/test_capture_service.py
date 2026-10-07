@@ -236,6 +236,7 @@ class AdapterTests(unittest.TestCase):
         self.addCleanup(set_supported_resolutions, original_sizes)
         self.camera = MagicMock()
         self.camera.available_sizes.return_value = [(1920, 1080)]
+        self.camera.focus_port.return_value = None
         self.constructor = MagicMock(return_value=self.camera)
         scheduler = MagicMock()
         stubs = {
@@ -270,6 +271,71 @@ class AdapterTests(unittest.TestCase):
         self.assertEqual(len(response.json["captures"]), 1)
         self.constructor.assert_called_once()
         self.camera.capture_bursts.assert_called_once()
+
+    def test_main_can_disabled_or_unset(self):
+        for enabled in (None, "0"):
+            with self.subTest(enabled=enabled), patch.dict(os.environ, {}, clear=True), \
+                    patch.object(self.daemon, "CanListener") as factory, \
+                    patch.object(self.daemon.app, "run") as serve:
+                if enabled is not None:
+                    os.environ["PAYLOAD_CAN_ENABLED"] = enabled
+                self.daemon.main()
+                factory.assert_not_called()
+                serve.assert_called_once_with(host=self.daemon.LISTEN_HOST,
+                                              port=self.daemon.LISTEN_PORT, threaded=True)
+
+    def test_main_can_interface_selection_and_shutdown(self):
+        for configured in (None, "can0"):
+            with self.subTest(configured=configured), \
+                    patch.dict(os.environ, {"PAYLOAD_CAN_ENABLED": "1"}, clear=True), \
+                    patch.object(self.daemon, "CanListener") as factory, \
+                    patch.object(self.daemon.app, "run") as serve, \
+                    self.assertLogs("payload.daemon", level="INFO") as logs:
+                if configured is not None:
+                    os.environ["PAYLOAD_CAN_INTERFACE"] = configured
+                expected = configured or "vcan0"
+                self.daemon.main()
+                factory.assert_called_once_with(
+                    self.daemon.capture_service.run, interface=expected,
+                    timer=self.daemon.timer_service, status=self.daemon._can_status)
+                factory.return_value.start.assert_called_once_with()
+                factory.return_value.stop.assert_called_once_with()
+                serve.assert_called_once()
+                self.assertIn(repr(expected), logs.output[0])
+        self.constructor.assert_called_once()
+
+    def test_main_can_startup_oserror_preserves_http_camera_and_timer(self):
+        with patch.dict(os.environ, {"PAYLOAD_CAN_ENABLED": "1",
+                                     "PAYLOAD_CAN_INTERFACE": "can0"}, clear=True), \
+                patch.object(self.daemon, "CanListener") as factory, \
+                patch.object(self.daemon.app, "run") as serve, \
+                self.assertLogs("payload.daemon", level="INFO") as logs:
+            factory.return_value.start.side_effect = OSError("can0 absent")
+            self.daemon.main()
+            serve.assert_called_once()
+            factory.return_value.start.assert_called_once_with()
+            factory.return_value.stop.assert_called_once_with()
+        self.assertTrue(any("CAN unavailable on interface 'can0'" in line
+                            and "HTTP daemon will continue" in line for line in logs.output))
+        self.assertEqual(self.client.get("/healthz").status_code, 200)
+        self.assertEqual(self.client.post("/capture").status_code, 200)
+        self.daemon._timer_tick()
+        self.assertEqual(self.camera.capture_bursts.call_count, 2)
+        self.constructor.assert_called_once()
+
+    def test_main_empty_can_interface_preserves_http_without_binding(self):
+        for interface in ("", " ", "\t\n"):
+            with self.subTest(interface=interface), \
+                    patch.dict(os.environ, {"PAYLOAD_CAN_ENABLED": "1",
+                                           "PAYLOAD_CAN_INTERFACE": interface}, clear=True), \
+                    patch("pi.daemon.can_listener.socket.socket") as socket_factory, \
+                    patch.object(self.daemon.app, "run") as serve, \
+                    self.assertLogs("payload.daemon", level="INFO") as logs:
+                self.daemon.main()
+                socket_factory.assert_not_called()
+                serve.assert_called_once()
+                self.assertIn(repr(interface), logs.output[0])
+                self.assertTrue(any("HTTP daemon will continue" in line for line in logs.output))
 
     def test_http_busy_and_error(self):
         for error, code in ((FakeBusyError("busy"), 409), (RuntimeError("read failed"), 500)):

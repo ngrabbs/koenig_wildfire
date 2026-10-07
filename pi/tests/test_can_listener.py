@@ -190,13 +190,73 @@ class TransportTests(unittest.TestCase):
 
     def test_bind_failure_closes_socket(self):
         sock = Mock()
-        sock.bind.side_effect = OSError("vcan0 absent")
+        sock.bind.side_effect = OSError("can0 absent")
         with patch.multiple(socket, AF_CAN=29, CAN_RAW=1, SOL_CAN_RAW=101,
                             CAN_RAW_FILTER=1, create=True), \
                 patch.object(socket, "socket", return_value=sock):
             with self.assertRaises(OSError):
-                CanListener(Mock()).start()
+                CanListener(Mock(), interface="can0").start()
+        sock.bind.assert_called_once_with(("can0",))
         sock.close.assert_called_once()
+
+    def test_selected_interface_setup_and_logging(self):
+        sock = Mock()
+        listener = CanListener(Mock(), interface="can0")
+        with patch.multiple(socket, AF_CAN=29, CAN_RAW=1, SOL_CAN_RAW=101,
+                            CAN_RAW_FILTER=1, create=True), \
+                patch.object(socket, "socket", return_value=sock) as factory, \
+                patch("pi.daemon.can_listener.threading.Thread") as thread, \
+                self.assertLogs("payload.can", level="INFO") as logs:
+            thread.return_value.is_alive.return_value = False
+            listener.start()
+            listener.stop()
+        factory.assert_called_once_with(29, socket.SOCK_RAW, 1)
+        sock.bind.assert_called_once_with(("can0",))
+        sock.setsockopt.assert_called_once_with(
+            101, 1, CAN_FILTER.pack(REQUEST_ID, REQUEST_MASK))
+        sock.close.assert_called_once()
+        self.assertIn("SpaceCAN listening on 'can0'", logs.output[0])
+
+    def test_empty_interfaces_rejected_before_socket_creation(self):
+        for interface in ("", " ", "\t\n"):
+            with self.subTest(interface=interface), \
+                    patch.object(socket, "socket") as factory:
+                with self.assertRaisesRegex(OSError, "must not be empty"):
+                    CanListener(Mock(), interface=interface).start()
+                factory.assert_not_called()
+
+    def test_receive_failure_logs_interface_and_closes_without_retry(self):
+        sock = Mock()
+        sock.recv.side_effect = OSError("link unavailable")
+        capture = Mock()
+        with self.assertLogs("payload.can", level="ERROR") as logs:
+            CanListener(capture, interface="can0")._receive(sock)
+        sock.recv.assert_called_once_with(CAN_FRAME.size)
+        sock.send.assert_not_called()
+        sock.close.assert_called_once()
+        capture.assert_not_called()
+        self.assertIn("failed on 'can0'; listener stopping", logs.output[0])
+
+    def test_send_failures_close_without_retry(self):
+        for stage in ("acceptance", "completion", "short write"):
+            with self.subTest(stage=stage):
+                sock = Mock()
+                sock.recv.return_value = CAN_FRAME.pack(REQUEST_ID, 5, CAPTURE_NOW)
+                sock.send.side_effect = ([CAN_FRAME.size, OSError("send failed")]
+                                        if stage == "completion" else
+                                        [0] if stage == "short write" else
+                                        [OSError("send failed")])
+                capture = Mock(return_value=response())
+                with self.assertLogs("payload.can", level="ERROR") as logs:
+                    CanListener(capture, interface="can0")._receive(sock)
+                sock.recv.assert_called_once_with(CAN_FRAME.size)
+                self.assertEqual(sock.send.call_count, 2 if stage == "completion" else 1)
+                sock.close.assert_called_once()
+                if stage == "completion":
+                    capture.assert_called_once_with(CaptureRequest(caller="can"))
+                else:
+                    capture.assert_not_called()
+                self.assertIn("failed on 'can0'; listener stopping", logs.output[0])
 
     def test_classic_frame_receive_encoding(self):
         capture = Mock(return_value=response())

@@ -1,4 +1,4 @@
-"""Koenig SpaceCAN command adapter for Linux SocketCAN on vcan0.
+"""Koenig SpaceCAN command adapter for a selected Linux SocketCAN interface.
 
 Wire format follows python-spacecan 0.8.0 Packet.split(), ServicePacket and
 FunctionManagementServiceResponder (https://pypi.org/project/spacecan/0.8.0/).
@@ -81,8 +81,10 @@ class CanListener:
     no immediate CAN-side cancellation or guarantee of a response deadline.
     """
 
-    def __init__(self, capture: Callable[[CaptureRequest], CaptureResponse], *, timer=None, status=None):
+    def __init__(self, capture: Callable[[CaptureRequest], CaptureResponse], *,
+                 interface: str = "vcan0", timer=None, status=None):
         self.capture = capture
+        self.interface = interface
         self.timer = timer
         self.status = status
         self._stop = threading.Event()
@@ -92,6 +94,8 @@ class CanListener:
     def start(self) -> None:
         if self._thread is not None:
             raise RuntimeError("CAN listener already started")
+        if not self.interface.strip():
+            raise OSError("CAN interface must not be empty or whitespace-only")
         if not hasattr(socket, "AF_CAN"):
             raise OSError("SocketCAN requires Linux")
         sock = socket.socket(socket.AF_CAN, socket.SOCK_RAW, socket.CAN_RAW)
@@ -99,7 +103,7 @@ class CanListener:
             sock.setsockopt(socket.SOL_CAN_RAW, socket.CAN_RAW_FILTER,
                             CAN_FILTER.pack(REQUEST_ID, REQUEST_MASK))
             sock.settimeout(0.2)
-            sock.bind(("vcan0",))
+            sock.bind((self.interface,))
             self._socket = sock
             self._thread = threading.Thread(target=self._receive, args=(sock,),
                                             name="payload-can", daemon=True)
@@ -109,7 +113,8 @@ class CanListener:
             self._thread = None
             sock.close()
             raise
-        log.info("SpaceCAN listening on vcan0: request 0x%03X, reply 0x%03X", REQUEST_ID, REPLY_ID)
+        log.info("SpaceCAN listening on %r: request 0x%03X, reply 0x%03X",
+                 self.interface, REQUEST_ID, REPLY_ID)
 
     def _receive(self, sock) -> None:
         def send(can_id, payload):
@@ -132,7 +137,8 @@ class CanListener:
                 continue
             except OSError:
                 if not self._stop.is_set():
-                    log.exception("SocketCAN receive/reply failed; listener stopping")
+                    log.exception("SocketCAN receive/reply failed on %r; listener stopping",
+                                  self.interface)
                 break
         sock.close()
 
