@@ -123,6 +123,50 @@ class PacketTests(unittest.TestCase):
                                 for e in results[0].events))
 
 
+class ControlTests(unittest.TestCase):
+    def test_timer_dispatch_and_status_sequence(self):
+        from pi.shared.can_protocol import Function, encode_request
+        timer = Mock()
+        capture = Mock()
+        reports = (bytes.fromhex('0000f0010300003c'), bytes.fromhex('0000f00200000000'))
+        status = Mock(return_value=reports)
+        for function in (Function.SET_TIMER_INTERVAL, Function.START_TIMER, Function.STOP_TIMER, Function.GET_STATUS):
+            sent = []
+            handle_frame(REQUEST_ID, encode_request(function, 60 if function == Function.SET_TIMER_INTERVAL else None),
+                         capture, lambda ident, data: sent.append(data), timer=timer, status=status)
+            expected = [bytes.fromhex('000001010801')]
+            if function == Function.GET_STATUS: expected.extend(reports)
+            expected.append(bytes.fromhex('000001070801'))
+            self.assertEqual(sent, expected)
+        timer.set_interval.assert_called_once_with(60)
+        timer.start.assert_called_once_with()
+        timer.stop.assert_called_once_with()
+        capture.assert_not_called()
+
+    def test_timer_execution_failure_and_acceptance_send_failure(self):
+        timer = Mock()
+        timer.start.side_effect = OSError('save failed')
+        sent = []
+        handle_frame(REQUEST_ID, bytes.fromhex('0000080103'), Mock(),
+                     lambda ident, data: sent.append(data), timer=timer)
+        self.assertEqual(sent, [bytes.fromhex('000001010801'), bytes.fromhex('000001080801')])
+        timer.reset_mock()
+        with self.assertRaises(OSError):
+            handle_frame(REQUEST_ID, bytes.fromhex('0000080103'), Mock(),
+                         Mock(side_effect=OSError('bus down')), timer=timer)
+        timer.start.assert_not_called()
+
+    def test_bad_controls_never_execute(self):
+        timer = Mock()
+        for text in ('00000801ff', '0000080102000004', '0000080102015181',
+                     '000008010300', '000008010400', '000008010500'):
+            sent = []
+            handle_frame(REQUEST_ID, bytes.fromhex(text), Mock(),
+                         lambda ident, data: sent.append(data), timer=timer)
+            self.assertEqual(sent, [bytes.fromhex('000001020801')])
+        self.assertEqual(timer.mock_calls, [])
+
+
 class TransportTests(unittest.TestCase):
     def test_exact_standard_id_request_mask(self):
         self.assertEqual(REQUEST_MASK, 0xC00007FF)
@@ -201,6 +245,39 @@ class VcanTests(unittest.TestCase):
             received.append((can_id, data[:length].hex()))
         self.assertEqual(received, [(0x320, "000001010801"), (0x320, "000001070801")])
         capture.assert_called_once_with(CaptureRequest(caller="can"))
+
+    def test_real_vcan_control_client_and_autonomous_timer(self):
+        from apscheduler.schedulers.background import BackgroundScheduler
+        from pi.daemon.timer_service import TimerService
+        from pi.shared.can_protocol import Function, encode_status
+        from tools.ihu_simulator import IhuClient
+        import threading
+        client_socket = socket.socket(socket.AF_CAN, socket.SOCK_RAW, socket.CAN_RAW)
+        self.addCleanup(client_socket.close)
+        try:
+            client_socket.bind(('vcan0',))
+        except OSError as exc:
+            self.skipTest(f'vcan0 is unavailable: {exc}')
+        client_socket.setsockopt(socket.SOL_CAN_RAW, socket.CAN_RAW_FILTER,
+                                 CAN_FILTER.pack(REPLY_ID, REQUEST_MASK))
+        temp = TemporaryDirectory(); self.addCleanup(temp.cleanup)
+        settings = SettingsStore(Path(temp.name) / 'settings.json')
+        scheduler = BackgroundScheduler(); scheduler.start()
+        self.addCleanup(scheduler.shutdown)
+        tick = threading.Event()
+        timer = TimerService(settings, scheduler, tick.set)
+        status = lambda: encode_status(timer.snapshot(), {'busy': False, 'last': None}, False)
+        listener = CanListener(Mock(return_value=response()), timer=timer, status=status)
+        listener.start(); self.addCleanup(listener.stop)
+        client = IhuClient(client_socket, timeout=2, output=lambda _: None)
+        for f, interval in ((Function.SET_TIMER_INTERVAL, 5), (Function.START_TIMER, None)):
+            self.assertEqual(client.execute(f, interval)['outcome'], 'success')
+        self.assertTrue(client.execute(Function.GET_STATUS)['reports']['timer']['active'])
+        self.assertTrue(tick.wait(7))
+        client_socket.settimeout(.2)
+        with self.assertRaises(socket.timeout): client_socket.recv(CAN_FRAME.size)
+        self.assertEqual(client.execute(Function.STOP_TIMER)['outcome'], 'success')
+        self.assertFalse(client.execute(Function.GET_STATUS)['reports']['timer']['active'])
 
 
 if __name__ == "__main__":

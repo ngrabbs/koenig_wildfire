@@ -336,13 +336,13 @@ class SettingsStore:
                     if k in new["wavelengths"]
                 }}
                 new["wavelengths"] = _coerce_wavelengths(merged_wl)
+            self._save(new)
             self._data = new
-            self._save()
             return copy.deepcopy(self._data)
 
-    def _save(self) -> None:
+    def _save(self, data: dict) -> None:
         tmp = self.path.with_suffix(".tmp")
-        tmp.write_text(json.dumps(self._data, indent=2))
+        tmp.write_text(json.dumps(data, indent=2))
         tmp.replace(self.path)
 
     def controls_for(self, port: int) -> dict[str, Any]:

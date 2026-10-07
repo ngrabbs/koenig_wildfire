@@ -200,6 +200,30 @@ class CaptureTests(unittest.TestCase):
             self.assertEqual(result.decision, "NOT_CALIBRATED")
             self.assertEqual(self.calls, [])
 
+    def test_status_observes_active_busy_and_finished_results(self):
+        entered, release = threading.Event(), threading.Event()
+        original = self.service.live_capture
+        def blocked(**kwargs):
+            entered.set()
+            if not release.wait(5): raise RuntimeError('test timed out')
+            return original(**kwargs)
+        self.service.live_capture = blocked
+        self.assertEqual(self.service.status_snapshot(), {'busy': False, 'last': None})
+        worker = threading.Thread(target=lambda: self.service.run(CaptureRequest()))
+        worker.start()
+        try:
+            self.assertTrue(entered.wait(5))
+            self.assertTrue(self.service.status_snapshot()['busy'])
+            self.assertEqual(self.service.run(CaptureRequest(caller='timer')).status, 'busy')
+            self.assertEqual(self.service.status_snapshot()['last'].status, 'busy')
+        finally:
+            release.set(); worker.join(5)
+        snapshot = self.service.status_snapshot()
+        self.assertFalse(snapshot['busy'])
+        self.assertEqual(snapshot['last'].status, 'success')
+        snapshot['last'].events.clear()
+        self.assertEqual(len(self.service.status_snapshot()['last'].events), 1)
+
 
 class AdapterTests(unittest.TestCase):
     """Import the real Flask routes with camera and scheduler dependencies stubbed."""
@@ -283,6 +307,22 @@ class AdapterTests(unittest.TestCase):
         run.assert_called_once_with(CaptureRequest(caller="timer"))
         self.camera.capture_bursts.assert_called_once()
         self.constructor.assert_called_once()
+
+    def test_status_poll_preserves_last_and_timer_has_no_can_replies(self):
+        with patch('pi.daemon.can_listener.handle_frame') as handle:
+            self.daemon._timer_tick()
+            before = self.daemon.capture_service.status_snapshot()['last']
+            reports = self.daemon._can_status()
+            self.assertEqual(len(reports), 2)
+            self.assertEqual(self.daemon.capture_service.status_snapshot()['last'], before)
+            handle.assert_not_called()
+
+    def test_http_timer_uses_shared_controller(self):
+        with patch.object(self.daemon.timer_service, 'update_settings', wraps=self.daemon.timer_service.update_settings) as update:
+            response = self.client.put('/settings', json={'timer': {'interval_seconds': 30, 'enabled': True}})
+            self.assertEqual(response.status_code, 200)
+            update.assert_called_once()
+            self.assertEqual(self.daemon.settings.timer(), {'enabled': True, 'interval_seconds': 30})
 
 
 if __name__ == "__main__":

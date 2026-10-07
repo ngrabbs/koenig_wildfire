@@ -1,11 +1,11 @@
-"""Minimal SpaceCAN CAPTURE_NOW adapter for Linux SocketCAN on vcan0.
+"""Koenig SpaceCAN command adapter for Linux SocketCAN on vcan0.
 
 Wire format follows python-spacecan 0.8.0 Packet.split(), ServicePacket and
 FunctionManagementServiceResponder (https://pypi.org/project/spacecan/0.8.0/).
 Only unsegmented classic standard-ID frames are supported. Acceptance means
 packet validation, not camera reservation. Busy/failed execution gets a
 completion failure. This serial proof of concept has no command queue,
-retries, timer commands, simulation commands, or science decisions.
+retries, simulation commands, or science decisions.
 """
 from __future__ import annotations
 
@@ -17,22 +17,21 @@ from typing import Callable
 
 from .capture_service import CaptureRequest, CaptureResponse
 
+from ..shared.can_protocol import (NODE_ID, REQUEST_ID, REPLY_ID, REQUEST_MASK,
+                                   CAPTURE_NOW, Function, parse_request)
+
 log = logging.getLogger("payload.can")
-NODE_ID = 0x20
-REQUEST_ID = 0x280 + NODE_ID
-REPLY_ID = 0x300 + NODE_ID
-CAPTURE_NOW = bytes.fromhex("00 00 08 01 01")
 CAN_FRAME = struct.Struct("=IB3x8s")  # Linux struct can_frame, classic CAN
 CAN_FILTER = struct.Struct("=II")
 # Compare the standard ID and EFF/RTR flags. CAN_ERR_FLAG is not part of
 # this exact-ID filter mask; handle_frame still rejects flagged IDs.
-REQUEST_MASK = 0xC00007FF
 
 
 def handle_frame(
     can_id: int, payload: bytes,
     capture: Callable[[CaptureRequest], CaptureResponse],
     send: Callable[[int, bytes], None],
+    *, timer=None, status=None,
 ) -> None:
     """Validate one frame, send verification, and invoke the existing owner."""
     if can_id != REQUEST_ID:
@@ -45,17 +44,31 @@ def handle_frame(
     def reply(subtype):
         send(REPLY_ID, bytes((0, 0, 1, subtype)) + payload[2:4])
 
-    if payload != CAPTURE_NOW:
-        reply(2)  # acceptance failure; do not execute unsupported requests
+    try:
+        command = parse_request(payload)
+    except ValueError:
+        reply(2)
         return
     reply(1)  # send before capture; a send failure must not start capture
     try:
-        result = capture(CaptureRequest(source="live", caller="can"))
-        completed = result.status == "success"
-        if not completed:
-            log.warning("CAN capture %s: %s", result.status, result.failure)
+        completed = True
+        if command.function == Function.CAPTURE_NOW:
+            result = capture(CaptureRequest(source="live", caller="can"))
+            completed = result.status == "success"
+            if not completed:
+                log.warning("CAN capture %s: %s", result.status, result.failure)
+        elif command.function == Function.SET_TIMER_INTERVAL:
+            timer.set_interval(command.interval)
+        elif command.function == Function.START_TIMER:
+            timer.start()
+        elif command.function == Function.STOP_TIMER:
+            timer.stop()
+        elif command.function == Function.GET_STATUS:
+            reports = status()
+            for report in reports:
+                send(REPLY_ID, report)
     except Exception:
-        log.exception("CAN capture raised unexpectedly")
+        log.exception("CAN command execution failed")
         completed = False
     reply(7 if completed else 8)
 
@@ -68,8 +81,10 @@ class CanListener:
     no immediate CAN-side cancellation or guarantee of a response deadline.
     """
 
-    def __init__(self, capture: Callable[[CaptureRequest], CaptureResponse]):
+    def __init__(self, capture: Callable[[CaptureRequest], CaptureResponse], *, timer=None, status=None):
         self.capture = capture
+        self.timer = timer
+        self.status = status
         self._stop = threading.Event()
         self._socket = None
         self._thread = None
@@ -111,7 +126,8 @@ class CanListener:
                     continue
                 can_id, length, data = CAN_FRAME.unpack(raw)
                 if length <= 8:
-                    handle_frame(can_id, data[:length], self.capture, send)
+                    handle_frame(can_id, data[:length], self.capture, send,
+                                 timer=self.timer, status=self.status)
             except socket.timeout:
                 continue
             except OSError:

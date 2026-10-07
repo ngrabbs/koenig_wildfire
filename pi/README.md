@@ -31,7 +31,7 @@ uses the common calibrated/unsaturated region as its denominator;
 Invalid/missing calibration stays `WAITING_FOR_CALIBRATION`; execution or
 input failures return `PROCESSING_FAILED` and preserve the captured event.
 
-## Jetson CAN proof of concept (opt-in)
+## Jetson / IHU CAN control (opt-in)
 
 The existing daemon can listen on Linux SocketCAN `vcan0` without creating
 another camera owner. On the Jetson/Linux test host, create the virtual bus:
@@ -50,9 +50,12 @@ candump vcan0,320:7FF
 cansend vcan0 2A0#0000080101
 ```
 
-Only that exact standard-ID, classic CAN CAPTURE_NOW request executes. It
-runs one normal shared live capture cycle using current settings, including
-`burst_count`. No timer/status/simulation commands are implemented.
+CAPTURE_NOW retains that exact packet and runs one normal shared live capture
+cycle using current settings, including `burst_count`. Phase 5 also supports
+SET_TIMER_INTERVAL, START_TIMER, STOP_TIMER, and GET_STATUS. Simulation over
+CAN is not supported. See [the complete IHU interface](../docs/ihu_jetson_interface.md)
+for all bytes and provisional status-service allocation. Run the reference
+client with `python3 -m tools.ihu_simulator --interface vcan0`.
 Replies use node `0x20` / CAN ID `0x320`, following
 [SpaceCAN Service 01](https://pypi.org/project/spacecan/0.8.0/):
 

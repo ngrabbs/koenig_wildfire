@@ -6,6 +6,7 @@ or radiometric calibration. The service never constructs a camera instance.
 from __future__ import annotations
 
 from collections import defaultdict
+import copy
 from dataclasses import asdict, dataclass, field
 import logging
 from pathlib import Path
@@ -85,16 +86,25 @@ class CaptureService:
         self.busy_error = busy_error
         self.simulation_root = simulation_root if simulation_root is not None else store.root
         self._busy = threading.Lock()
+        self._status_lock = threading.Lock()
+        self._last = None
         self.processor = processor if processor is not None else ProcessingService()
+
+    def status_snapshot(self) -> dict:
+        with self._status_lock:
+            return {"busy": self._busy.locked(), "last": copy.deepcopy(self._last)}
 
     def run(self, request: CaptureRequest) -> CaptureResponse:
         request_id = uuid4().hex
 
         def result(status, *, events=None, stage="request", code="", message=""):
-            return CaptureResponse(
+            response = CaptureResponse(
                 request_id, request.source, request.caller, status, events or [],
                 CaptureFailure(stage, code, message) if code else None,
             )
+            with self._status_lock:
+                self._last = copy.deepcopy(response)
+            return response
 
         if request.source not in ("live", "simulation") or request.caller not in ("http", "timer", "can"):
             return result("error", code="INVALID_REQUEST", message="unknown source or caller")

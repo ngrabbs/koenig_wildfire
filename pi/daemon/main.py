@@ -34,6 +34,8 @@ from .capture_service import CaptureRequest, CaptureResponse, CaptureService, Ca
 from .store import ImageStore
 from .processing_service import CalibrationConfig, ProcessingService
 from .can_listener import CanListener
+from .timer_service import TimerService
+from ..shared.can_protocol import encode_status
 from ..shared.settings import (SettingsStore, set_supported_resolutions,
                                supported_resolutions)
 
@@ -69,7 +71,7 @@ capture_service = CaptureService(
 
 
 def _run_one_capture_cycle(request: CaptureRequest | None = None) -> CaptureResponse:
-    """Shared acquisition and calibration gate; no scientific processing yet."""
+    """Shared acquisition and eligible stored-triplet processing."""
     return capture_service.run(request if request is not None else CaptureRequest())
 
 
@@ -89,23 +91,16 @@ def _timer_tick():
         log.error("timer tick failed: %s", result.failure)
 
 
+timer_service = TimerService(settings, scheduler, _timer_tick)
+
+
 def _apply_timer():
-    """Sync the scheduler to current settings.timer."""
-    cfg = settings.timer()
-    try:
-        scheduler.remove_job(_TIMER_JOB_ID)
-    except Exception:
-        pass
-    if cfg.get("enabled") and cfg.get("interval_seconds", 0) > 0:
-        scheduler.add_job(
-            _timer_tick,
-            "interval",
-            seconds=cfg["interval_seconds"],
-            id=_TIMER_JOB_ID,
-            coalesce=True,
-            max_instances=1,
-            replace_existing=True,
-        )
+    timer_service.reconcile()
+
+
+def _can_status():
+    return encode_status(timer_service.snapshot(), capture_service.status_snapshot(),
+                         cameras.focus_port() is not None)
 
 
 _apply_timer()
@@ -191,10 +186,9 @@ def get_settings():
 def update_settings():
     patch = request.get_json(force=True, silent=True) or {}
     try:
-        updated = settings.update(patch)
+        updated = timer_service.update_settings(patch, restart=True)
     except ValueError as exc:
         return jsonify(error=str(exc)), 400
-    _apply_timer()
     return jsonify(updated)
 
 
@@ -276,7 +270,7 @@ def system_shutdown():
 def main():
     listener = None
     if os.environ.get("PAYLOAD_CAN_ENABLED") == "1":
-        listener = CanListener(capture_service.run)
+        listener = CanListener(capture_service.run, timer=timer_service, status=_can_status)
         try:
             listener.start()
         except OSError:
