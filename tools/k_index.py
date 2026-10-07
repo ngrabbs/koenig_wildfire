@@ -104,8 +104,9 @@ def read_channel(path: Path) -> np.ndarray:
         raise RuntimeError(f"could not read {path}")
     if img.ndim == 3:
         img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    was_uint16 = img.dtype == np.uint16
     img = img.astype(np.float32)
-    if img.dtype == np.uint16 or img.max() > 255.0:
+    if was_uint16 or img.max() > 255.0:
         img /= INPUT_SCALE_16BIT
     return img
 

@@ -47,7 +47,7 @@ class CaptureImage:
 class CaptureEvent:
     stem: str
     captures: list[CaptureImage]
-    processing_status: Literal["WAITING_FOR_CALIBRATION", "SKIPPED_INCOMPLETE_TRIPLET"]
+    processing_status: str
     processing: ProcessingResult | None = None
 
 
@@ -125,11 +125,15 @@ class CaptureService:
                 images = [CaptureImage(f.port, f.wavelength_nm, f.path.name, f.path.stat().st_size)
                           for f in group]
                 stage = "processing"
-                processing = self.processor.process(group) if ready else None
+                processing = self.processor.process(group, source=request.source) if ready else None
                 events.append(CaptureEvent(
                     stem, images, processing.processing_status if processing is not None
                     else "SKIPPED_INCOMPLETE_TRIPLET", processing))
                 stage = "validate"
+            failed = next((e.processing for e in events if e.processing is not None
+                           and e.processing.processing_status == "PROCESSING_FAILED"), None)
+            if failed is not None:
+                return result("error", events=events, stage="processing", code=failed.code, message=failed.reason)
             return result("success", events=events)
         except self.busy_error as exc:
             return result("busy", stage="acquire", code="BUSY", message=str(exc))

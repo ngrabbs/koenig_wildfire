@@ -1,5 +1,36 @@
 # pi/
 
+## Stored-triplet processing (Phase 4)
+
+Set `PAYLOAD_CALIBRATION_PATH` to the absolute path of
+`calibration/correction_20261003.npz`. Stored/simulation processing checks the
+archive structure, measured dark flags, finite positive gains, map dimensions,
+and records its SHA-256. The hash is provenance, not a permanent allowlist.
+Only original uint8 1456x1088 images with ports 0=770, 1=750, 2=780 qualify.
+The current live Jetson single-camera path stays skipped/incomplete.
+
+Matching files do **not** prove unchanged focus, orientation, exposure, gain,
+or physical optics. Results explicitly report `ACQUISITION_METADATA_UNVERIFIED`
+and `PROCESSED_WITH_LIMITATIONS`, never full scientific validity. The supplied
+darks were measured at 24000 us; no undocumented exposure tolerance is assumed.
+
+Processing reuses flat-field correction, then registration, then delta77 in
+isolated temporary directories. Temporary images are checked and removed;
+measurements, hashes, input provenance and registration diagnostics are returned.
+`calibrated_region_mask()` excludes ceil(10%) of **each** sensor edge. Masks
+are translated into the registered coordinate system and intersected, with a
+one-pixel erosion for rounded transform diagnostics/interpolation support.
+Clipped raw/corrected pixels are also excluded. No resizing occurs.
+
+Metrics include median/p99 delta77, fraction above 0.05 (an existing descriptive
+statistic, **not a fire threshold**), valid counts/fractions, and diagnostic
+ratios of channel means over identical valid pixels. `valid_pixel_fraction`
+uses the common calibrated/unsaturated region as its denominator;
+`valid_full_frame_fraction` uses the full sensor. Decision remains
+`NOT_CALIBRATED`: a detection threshold has not been scientifically validated.
+Invalid/missing calibration stays `WAITING_FOR_CALIBRATION`; execution or
+input failures return `PROCESSING_FAILED` and preserve the captured event.
+
 ## Jetson CAN proof of concept (opt-in)
 
 The existing daemon can listen on Linux SocketCAN `vcan0` without creating

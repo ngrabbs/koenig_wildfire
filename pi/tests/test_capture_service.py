@@ -14,6 +14,7 @@ import unittest
 from unittest.mock import MagicMock, patch
 
 from pi.daemon.capture_service import CaptureRequest, CaptureService
+from pi.daemon.processing_service import ProcessingResult
 from pi.daemon.store import (ImageStore, TripletSelectionError,
                              parse_capture_filename, select_stored_triplet)
 from pi.shared.settings import SettingsStore, set_supported_resolutions, supported_resolutions
@@ -142,6 +143,19 @@ class CaptureTests(unittest.TestCase):
         self.assertEqual((result.status, result.failure.code), ("error", "INCOMPLETE_TRIPLET"))
         self.assertEqual(result.decision, "NOT_CALIBRATED")
 
+    def test_processing_failure_retains_captured_event(self):
+        paths = self.triplet()
+        self.service.processor = MagicMock()
+        self.service.processor.process.return_value = ProcessingResult(
+            "REGISTRATION_FAILED", "low confidence", processing_status="PROCESSING_FAILED")
+        result = self.service.run(CaptureRequest(source="simulation", simulation_stem=STEM))
+        self.assertEqual(result.status, "error")
+        self.assertEqual(result.failure.stage, "processing")
+        self.assertEqual(result.failure.code, "REGISTRATION_FAILED")
+        self.assertEqual(result.decision, "NOT_CALIBRATED")
+        self.assertEqual([f.id for f in result.events[0].captures], [p.name for p in paths])
+        self.assertEqual(self.service.processor.process.call_args.kwargs, {"source": "simulation"})
+
     def test_backend_busy_and_error_release_service_lock(self):
         for exc, status in ((FakeBusyError("focus active"), "busy"), (RuntimeError("read failed"), "error")):
             def fail(**kwargs):
@@ -244,7 +258,7 @@ class AdapterTests(unittest.TestCase):
                 self.assertTrue(response.json["busy"])
 
     def test_http_simulation(self):
-        for port, wave in enumerate((750, 770, 780)):
+        for port, wave in enumerate((770, 750, 780)):
             (self.daemon.store.root / f"{STEM}_cam{port}_{wave}nm.jpg").write_bytes(b"stored")
         response = self.client.post("/capture", json={"source": "simulation", "simulation_stem": STEM})
         self.assertEqual(response.status_code, 200)
