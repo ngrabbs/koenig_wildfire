@@ -1,0 +1,21 @@
+{
+  "schema": "OFFLINE_ANCHOR_G2_DIAGNOSTIC_V1",
+  "production_decision": "NOT_CALIBRATED",
+  "scientific_decision": "UNKNOWN",
+  "reason_codes": [
+    "INVALID_INPUT_OR_PROCESSING_FAILURE:FileNotFoundError"
+  ],
+  "geometry": null,
+  "P": null,
+  "I": null,
+  "provenance": {
+    "request_sha256": "1c51ff7bc18194122999b795fadead23bcff17cfb0e958d78ce8375efab0dcfb"
+  },
+  "status": "UNKNOWN",
+  "runtime": {
+    "python": "3.12.14",
+    "numpy": "2.3.5",
+    "opencv": "5.0.0",
+    "opencv_build_sha256": "ce2f2890911cf9cf8d7c54cfbc8ccd4fb073cc2b53be1f4c7cbae8e5fd294e1c"
+  }
+}

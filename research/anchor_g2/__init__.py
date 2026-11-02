@@ -1,0 +1,1 @@
+"""Offline diagnostic adapter; no operational decisions."""

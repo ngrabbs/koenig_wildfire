@@ -1,0 +1,864 @@
+{
+  "schema": "J7B2_PROPOSED_B3_FIXTURE_SPEC_V1",
+  "execution_authorized": false,
+  "total_cases": 24,
+  "producer_cases": 23,
+  "maximum_issuances": 24,
+  "oracles_not_executed": true,
+  "oracle_freeze_required_before_B3": true,
+  "notes": "Reference-dependent expected states/counts mean exact equality to a separately reviewed pinned pure reference, not self-comparison. Analytic scene transforms are not assumed estimator outputs.",
+  "cases": [
+    {
+      "case_id": "P01_IDENTITY64",
+      "producer_mode": "GENERATED_PIPELINE",
+      "classification": "LEGACY_PARITY_AND_INTEGRATED_PIPELINE",
+      "seed": 0,
+      "stochastic": false,
+      "shape": [
+        64,
+        64
+      ],
+      "encoding": "GENERATED_JPEG_QUALITY_100_IMREAD_UNCHANGED_THEN_BGR2GRAY",
+      "rule": "fixtures.py fixed modular texture 40+((17*x+29*y+(x*y)%31)%61); source/background rasters frozen before measurement",
+      "source_mask": "[H/2-4:H/2+4,W/2-4:W/2+4]",
+      "background_mask": "[H/2-12:H/2-8,W/2-8:W/2]",
+      "source_count": 64,
+      "background_count": 32,
+      "expected_geometry": "MATCH_INDEPENDENT_PINNED_LEGACY_ORACLE_STATE_AND_TELEMETRY",
+      "expected_support_counts": "EXACT_EQUALITY_TO_INDEPENDENT_LEGACY_MASK_ORACLE_NOT_NEW_IMPLEMENTATION",
+      "expected_measurements": "FLOAT64_DECODED_SAMPLED_ARRAY_ORACLE_IF_GEOMETRY_ACCEPTED; OTHERWISE_BOTH_NOT_EVALUATED",
+      "tolerance_profile": "B3_PROPOSED_PARITY_V1",
+      "case_seconds_cap": 60,
+      "output_bytes_cap": 8388608,
+      "scene_truth": "identity, all bands identical",
+      "direct_sampler_oracle": {
+        "base_count": 2500,
+        "reference_eroded_count": 2304,
+        "common_identity_count": 2304,
+        "zero_excess": true
+      },
+      "emitting_support": "center4x4 inside fixed8x8 aperture",
+      "containment_oracle": "Project generated emitting rectangle plus fixed interpolation pad (1px;2px fractional scenario) through known source shifts and actual accepted matrices; require complete raster enclosure, independently of spectral excess. This bounds only declared pre-JPEG generated source geometry, not physical PSF/radiometry."
+    },
+    {
+      "case_id": "P02_INTEGER_PLUS1",
+      "producer_mode": "GENERATED_PIPELINE",
+      "classification": "LEGACY_PARITY_AND_INTEGRATED_PIPELINE",
+      "seed": 0,
+      "stochastic": false,
+      "shape": [
+        64,
+        64
+      ],
+      "encoding": "GENERATED_JPEG_QUALITY_100_IMREAD_UNCHANGED_THEN_BGR2GRAY",
+      "rule": "fixtures.py fixed modular texture 40+((17*x+29*y+(x*y)%31)%61); source/background rasters frozen before measurement",
+      "source_mask": "[H/2-4:H/2+4,W/2-4:W/2+4]",
+      "background_mask": "[H/2-12:H/2-8,W/2-8:W/2]",
+      "source_count": 64,
+      "background_count": 32,
+      "expected_geometry": "MATCH_INDEPENDENT_PINNED_LEGACY_ORACLE_STATE_AND_TELEMETRY",
+      "expected_support_counts": "EXACT_EQUALITY_TO_INDEPENDENT_LEGACY_MASK_ORACLE_NOT_NEW_IMPLEMENTATION",
+      "expected_measurements": "FLOAT64_DECODED_SAMPLED_ARRAY_ORACLE_IF_GEOMETRY_ACCEPTED; OTHERWISE_BOTH_NOT_EVALUATED",
+      "tolerance_profile": "B3_PROPOSED_PARITY_V1",
+      "case_seconds_cap": 60,
+      "output_bytes_cap": 8388608,
+      "true_source_to_reference": [
+        [
+          -1,
+          0
+        ],
+        [
+          0,
+          1
+        ]
+      ],
+      "emitting_support": "center4x4 inside fixed8x8 aperture",
+      "containment_oracle": "Project generated emitting rectangle plus fixed interpolation pad (1px;2px fractional scenario) through known source shifts and actual accepted matrices; require complete raster enclosure, independently of spectral excess. This bounds only declared pre-JPEG generated source geometry, not physical PSF/radiometry."
+    },
+    {
+      "case_id": "P03_INTEGER_MINUS2",
+      "producer_mode": "GENERATED_PIPELINE",
+      "classification": "LEGACY_PARITY_AND_INTEGRATED_PIPELINE",
+      "seed": 0,
+      "stochastic": false,
+      "shape": [
+        64,
+        64
+      ],
+      "encoding": "GENERATED_JPEG_QUALITY_100_IMREAD_UNCHANGED_THEN_BGR2GRAY",
+      "rule": "fixtures.py fixed modular texture 40+((17*x+29*y+(x*y)%31)%61); source/background rasters frozen before measurement",
+      "source_mask": "[H/2-4:H/2+4,W/2-4:W/2+4]",
+      "background_mask": "[H/2-12:H/2-8,W/2-8:W/2]",
+      "source_count": 64,
+      "background_count": 32,
+      "expected_geometry": "MATCH_INDEPENDENT_PINNED_LEGACY_ORACLE_STATE_AND_TELEMETRY",
+      "expected_support_counts": "EXACT_EQUALITY_TO_INDEPENDENT_LEGACY_MASK_ORACLE_NOT_NEW_IMPLEMENTATION",
+      "expected_measurements": "FLOAT64_DECODED_SAMPLED_ARRAY_ORACLE_IF_GEOMETRY_ACCEPTED; OTHERWISE_BOTH_NOT_EVALUATED",
+      "tolerance_profile": "B3_PROPOSED_PARITY_V1",
+      "case_seconds_cap": 60,
+      "output_bytes_cap": 8388608,
+      "true_source_to_reference": [
+        [
+          2,
+          -1
+        ],
+        [
+          -2,
+          1
+        ]
+      ],
+      "emitting_support": "center4x4 inside fixed8x8 aperture",
+      "containment_oracle": "Project generated emitting rectangle plus fixed interpolation pad (1px;2px fractional scenario) through known source shifts and actual accepted matrices; require complete raster enclosure, independently of spectral excess. This bounds only declared pre-JPEG generated source geometry, not physical PSF/radiometry."
+    },
+    {
+      "case_id": "P04_FRACTIONAL",
+      "producer_mode": "GENERATED_PIPELINE",
+      "classification": "LEGACY_PARITY_AND_INTEGRATED_PIPELINE",
+      "seed": 0,
+      "stochastic": false,
+      "shape": [
+        64,
+        64
+      ],
+      "encoding": "GENERATED_JPEG_QUALITY_100_IMREAD_UNCHANGED_THEN_BGR2GRAY",
+      "rule": "fixtures.py fixed modular texture 40+((17*x+29*y+(x*y)%31)%61); source/background rasters frozen before measurement",
+      "source_mask": "[H/2-4:H/2+4,W/2-4:W/2+4]",
+      "background_mask": "[H/2-12:H/2-8,W/2-8:W/2]",
+      "source_count": 64,
+      "background_count": 32,
+      "expected_geometry": "MATCH_INDEPENDENT_PINNED_LEGACY_ORACLE_STATE_AND_TELEMETRY",
+      "expected_support_counts": "EXACT_EQUALITY_TO_INDEPENDENT_LEGACY_MASK_ORACLE_NOT_NEW_IMPLEMENTATION",
+      "expected_measurements": "FLOAT64_DECODED_SAMPLED_ARRAY_ORACLE_IF_GEOMETRY_ACCEPTED; OTHERWISE_BOTH_NOT_EVALUATED",
+      "tolerance_profile": "B3_PROPOSED_PARITY_V1",
+      "case_seconds_cap": 60,
+      "output_bytes_cap": 8388608,
+      "true_source_to_reference": [
+        [
+          -0.5,
+          0
+        ],
+        [
+          0.5,
+          -0.5
+        ]
+      ],
+      "emitting_support": "center4x4 inside fixed8x8 aperture",
+      "containment_oracle": "Project generated emitting rectangle plus fixed interpolation pad (1px;2px fractional scenario) through known source shifts and actual accepted matrices; require complete raster enclosure, independently of spectral excess. This bounds only declared pre-JPEG generated source geometry, not physical PSF/radiometry."
+    },
+    {
+      "case_id": "P05_FLAT64",
+      "producer_mode": "GENERATED_PIPELINE",
+      "classification": "LEGACY_PARITY_AND_INTEGRATED_PIPELINE",
+      "seed": 0,
+      "stochastic": false,
+      "shape": [
+        64,
+        64
+      ],
+      "encoding": "GENERATED_JPEG_QUALITY_100_IMREAD_UNCHANGED_THEN_BGR2GRAY",
+      "rule": "fixtures.py fixed modular texture 40+((17*x+29*y+(x*y)%31)%61); source/background rasters frozen before measurement",
+      "source_mask": "[H/2-4:H/2+4,W/2-4:W/2+4]",
+      "background_mask": "[H/2-12:H/2-8,W/2-8:W/2]",
+      "source_count": 64,
+      "background_count": 32,
+      "expected_geometry": "REJECTED",
+      "expected_support_counts": {
+        "base_count": 2500,
+        "common_count": 0
+      },
+      "expected_measurements": "FLOAT64_DECODED_SAMPLED_ARRAY_ORACLE_IF_GEOMETRY_ACCEPTED; OTHERWISE_BOTH_NOT_EVALUATED",
+      "tolerance_profile": "B3_PROPOSED_PARITY_V1",
+      "case_seconds_cap": 60,
+      "output_bytes_cap": 8388608,
+      "expected_preparation_reason": "DIM_OR_FLAT_MATCHING_IMAGE",
+      "expected_first_pair_reason": "Preparation rejected",
+      "expected_calls": {
+        "decode": 3,
+        "correction": 3,
+        "preparation": 3,
+        "phase_fit": 0,
+        "signal_warp": 0,
+        "mask_warp": 0,
+        "mask_erosion": 0,
+        "P": 0,
+        "I": 0
+      },
+      "emitting_support": "center4x4 inside fixed8x8 aperture",
+      "containment_oracle": "Project generated emitting rectangle plus fixed interpolation pad (1px;2px fractional scenario) through known source shifts and actual accepted matrices; require complete raster enclosure, independently of spectral excess. This bounds only declared pre-JPEG generated source geometry, not physical PSF/radiometry."
+    },
+    {
+      "case_id": "P06_SATURATED64",
+      "producer_mode": "GENERATED_PIPELINE",
+      "classification": "LEGACY_PARITY_AND_INTEGRATED_PIPELINE",
+      "seed": 0,
+      "stochastic": false,
+      "shape": [
+        64,
+        64
+      ],
+      "encoding": "GENERATED_JPEG_QUALITY_100_IMREAD_UNCHANGED_THEN_BGR2GRAY",
+      "rule": "fixtures.py fixed modular texture 40+((17*x+29*y+(x*y)%31)%61); source/background rasters frozen before measurement",
+      "source_mask": "[H/2-4:H/2+4,W/2-4:W/2+4]",
+      "background_mask": "[H/2-12:H/2-8,W/2-8:W/2]",
+      "source_count": 64,
+      "background_count": 32,
+      "expected_geometry": "REJECTED",
+      "expected_support_counts": {
+        "base_count": 2500,
+        "common_count": 0
+      },
+      "expected_measurements": "FLOAT64_DECODED_SAMPLED_ARRAY_ORACLE_IF_GEOMETRY_ACCEPTED; OTHERWISE_BOTH_NOT_EVALUATED",
+      "tolerance_profile": "B3_PROPOSED_PARITY_V1",
+      "case_seconds_cap": 60,
+      "output_bytes_cap": 8388608,
+      "expected_preparation_reason": "NO_MATCHING_SUPPORT",
+      "expected_first_pair_reason": "Preparation rejected",
+      "expected_calls": {
+        "decode": 3,
+        "correction": 3,
+        "preparation": 3,
+        "phase_fit": 0,
+        "signal_warp": 0,
+        "mask_warp": 0,
+        "mask_erosion": 0,
+        "P": 0,
+        "I": 0
+      },
+      "emitting_support": "center4x4 inside fixed8x8 aperture",
+      "containment_oracle": "Project generated emitting rectangle plus fixed interpolation pad (1px;2px fractional scenario) through known source shifts and actual accepted matrices; require complete raster enclosure, independently of spectral excess. This bounds only declared pre-JPEG generated source geometry, not physical PSF/radiometry."
+    },
+    {
+      "case_id": "P07_COLOR128",
+      "producer_mode": "GENERATED_PIPELINE",
+      "classification": "LEGACY_PARITY_AND_INTEGRATED_PIPELINE",
+      "seed": 0,
+      "stochastic": false,
+      "shape": [
+        128,
+        128
+      ],
+      "encoding": "GENERATED_JPEG_QUALITY_100_IMREAD_UNCHANGED_THEN_BGR2GRAY",
+      "rule": "fixtures.py fixed modular texture 40+((17*x+29*y+(x*y)%31)%61); source/background rasters frozen before measurement; BGR=(a,min(a+7,255),max(a-5,0)) before generated encoding",
+      "source_mask": "[H/2-4:H/2+4,W/2-4:W/2+4]",
+      "background_mask": "[H/2-12:H/2-8,W/2-8:W/2]",
+      "source_count": 64,
+      "background_count": 32,
+      "expected_geometry": "MATCH_INDEPENDENT_PINNED_LEGACY_ORACLE_STATE_AND_TELEMETRY",
+      "expected_support_counts": "EXACT_EQUALITY_TO_INDEPENDENT_LEGACY_MASK_ORACLE_NOT_NEW_IMPLEMENTATION",
+      "expected_measurements": "FLOAT64_DECODED_SAMPLED_ARRAY_ORACLE_IF_GEOMETRY_ACCEPTED; OTHERWISE_BOTH_NOT_EVALUATED",
+      "tolerance_profile": "B3_PROPOSED_PARITY_V1",
+      "case_seconds_cap": 60,
+      "output_bytes_cap": 8388608,
+      "emitting_support": "center4x4 inside fixed8x8 aperture",
+      "containment_oracle": "Project generated emitting rectangle plus fixed interpolation pad (1px;2px fractional scenario) through known source shifts and actual accepted matrices; require complete raster enclosure, independently of spectral excess. This bounds only declared pre-JPEG generated source geometry, not physical PSF/radiometry."
+    },
+    {
+      "case_id": "P08_WORKWIDTH1152",
+      "producer_mode": "GENERATED_PIPELINE",
+      "classification": "LEGACY_PARITY_AND_INTEGRATED_PIPELINE",
+      "seed": 0,
+      "stochastic": false,
+      "shape": [
+        128,
+        1152
+      ],
+      "encoding": "GENERATED_JPEG_QUALITY_100_IMREAD_UNCHANGED_THEN_BGR2GRAY",
+      "rule": "fixtures.py fixed modular texture 40+((17*x+29*y+(x*y)%31)%61); source/background rasters frozen before measurement",
+      "source_mask": "[H/2-4:H/2+4,W/2-4:W/2+4]",
+      "background_mask": "[H/2-12:H/2-8,W/2-8:W/2]",
+      "source_count": 64,
+      "background_count": 32,
+      "expected_geometry": "MATCH_INDEPENDENT_PINNED_LEGACY_ORACLE_STATE_AND_TELEMETRY",
+      "expected_support_counts": "EXACT_EQUALITY_TO_INDEPENDENT_LEGACY_MASK_ORACLE_NOT_NEW_IMPLEMENTATION",
+      "expected_measurements": "FLOAT64_DECODED_SAMPLED_ARRAY_ORACLE_IF_GEOMETRY_ACCEPTED; OTHERWISE_BOTH_NOT_EVALUATED",
+      "tolerance_profile": "B3_PROPOSED_PARITY_V1",
+      "case_seconds_cap": 60,
+      "output_bytes_cap": 8388608,
+      "direct_sampler_oracle": {
+        "base_count": 93840,
+        "reference_eroded_identity_count": 91800,
+        "work_shape": [
+          114,
+          1024
+        ],
+        "sx": "8/9",
+        "sy": "57/64"
+      },
+      "emitting_support": "center4x4 inside fixed8x8 aperture",
+      "containment_oracle": "Project generated emitting rectangle plus fixed interpolation pad (1px;2px fractional scenario) through known source shifts and actual accepted matrices; require complete raster enclosure, independently of spectral excess. This bounds only declared pre-JPEG generated source geometry, not physical PSF/radiometry."
+    },
+    {
+      "case_id": "P09_MISSING_CORE",
+      "producer_mode": "GENERATED_PIPELINE",
+      "classification": "LEGACY_PARITY_AND_INTEGRATED_PIPELINE",
+      "seed": 0,
+      "stochastic": false,
+      "shape": [
+        64,
+        64
+      ],
+      "encoding": "GENERATED_JPEG_QUALITY_100_IMREAD_UNCHANGED_THEN_BGR2GRAY",
+      "rule": "fixtures.py fixed modular texture 40+((17*x+29*y+(x*y)%31)%61); source/background rasters frozen before measurement; generated cam1 center3x3 set255 before JPEG",
+      "source_mask": "[H/2-4:H/2+4,W/2-4:W/2+4]",
+      "background_mask": "[H/2-12:H/2-8,W/2-8:W/2]",
+      "source_count": 64,
+      "background_count": 32,
+      "expected_geometry": "MATCH_INDEPENDENT_PINNED_LEGACY_ORACLE_STATE_AND_TELEMETRY",
+      "expected_support_counts": "EXACT_EQUALITY_TO_INDEPENDENT_LEGACY_MASK_ORACLE_NOT_NEW_IMPLEMENTATION",
+      "expected_measurements": "If decoded/common source support is incomplete: I INELIGIBLE/SOURCE_TRUNCATED; exact decoded clipping and counts from independent reference. If not incomplete, fixture coverage fails; do not tune encoding.",
+      "tolerance_profile": "B3_PROPOSED_PARITY_V1",
+      "case_seconds_cap": 60,
+      "output_bytes_cap": 8388608,
+      "emitting_support": "center4x4 inside fixed8x8 aperture",
+      "containment_oracle": "Project generated emitting rectangle plus fixed interpolation pad (1px;2px fractional scenario) through known source shifts and actual accepted matrices; require complete raster enclosure, independently of spectral excess. This bounds only declared pre-JPEG generated source geometry, not physical PSF/radiometry."
+    },
+    {
+      "case_id": "P10_TRUNCATED_SOURCE",
+      "producer_mode": "GENERATED_PIPELINE",
+      "classification": "LEGACY_PARITY_AND_INTEGRATED_PIPELINE",
+      "seed": 0,
+      "stochastic": false,
+      "shape": [
+        64,
+        64
+      ],
+      "encoding": "GENERATED_JPEG_QUALITY_100_IMREAD_UNCHANGED_THEN_BGR2GRAY",
+      "rule": "fixtures.py fixed modular texture 40+((17*x+29*y+(x*y)%31)%61); source/background rasters frozen before measurement",
+      "source_mask": "[H/2-4:H/2+4,W/2-4:W/2+4]",
+      "background_mask": "[H/2-12:H/2-8,W/2-8:W/2]",
+      "source_count": 56,
+      "background_count": 32,
+      "expected_geometry": "MATCH_INDEPENDENT_PINNED_LEGACY_ORACLE_STATE_AND_TELEMETRY",
+      "expected_support_counts": "EXACT_EQUALITY_TO_INDEPENDENT_LEGACY_MASK_ORACLE_NOT_NEW_IMPLEMENTATION",
+      "expected_measurements": "If geometry accepted: I INELIGIBLE/SOURCE_TRUNCATED from independent known incomplete containment even if raster survives; public source_count56.",
+      "tolerance_profile": "B3_PROPOSED_PARITY_V1",
+      "case_seconds_cap": 60,
+      "output_bytes_cap": 8388608,
+      "emitting_support": "center8x8 before source-raster truncation",
+      "containment_oracle": "Project generated emitting rectangle plus fixed interpolation pad (1px;2px fractional scenario) through known source shifts and actual accepted matrices; require complete raster enclosure, independently of spectral excess. This bounds only declared pre-JPEG generated source geometry, not physical PSF/radiometry."
+    },
+    {
+      "case_id": "P11_KNOWN_EXCESS",
+      "producer_mode": "GENERATED_PIPELINE",
+      "classification": "LEGACY_PARITY_AND_INTEGRATED_PIPELINE",
+      "seed": 0,
+      "stochastic": false,
+      "shape": [
+        64,
+        64
+      ],
+      "encoding": "GENERATED_JPEG_QUALITY_100_IMREAD_UNCHANGED_THEN_BGR2GRAY",
+      "rule": "fixtures.py fixed modular texture 40+((17*x+29*y+(x*y)%31)%61); source/background rasters frozen before measurement; on-band source receives additional32DN before JPEG; decoded/sampled oracle, not ideal field, defines numeric expectation",
+      "source_mask": "[H/2-4:H/2+4,W/2-4:W/2+4]",
+      "background_mask": "[H/2-12:H/2-8,W/2-8:W/2]",
+      "source_count": 64,
+      "background_count": 32,
+      "expected_geometry": "MATCH_INDEPENDENT_PINNED_LEGACY_ORACLE_STATE_AND_TELEMETRY",
+      "expected_support_counts": "EXACT_EQUALITY_TO_INDEPENDENT_LEGACY_MASK_ORACLE_NOT_NEW_IMPLEMENTATION",
+      "expected_measurements": "FLOAT64_DECODED_SAMPLED_ARRAY_ORACLE_IF_GEOMETRY_ACCEPTED; OTHERWISE_BOTH_NOT_EVALUATED",
+      "tolerance_profile": "B3_PROPOSED_PARITY_V1",
+      "case_seconds_cap": 60,
+      "output_bytes_cap": 8388608,
+      "emitting_support": "center4x4 inside fixed8x8 aperture",
+      "containment_oracle": "Project generated emitting rectangle plus fixed interpolation pad (1px;2px fractional scenario) through known source shifts and actual accepted matrices; require complete raster enclosure, independently of spectral excess. This bounds only declared pre-JPEG generated source geometry, not physical PSF/radiometry."
+    },
+    {
+      "case_id": "P12_BAD_MAPPING",
+      "producer_mode": "GENERATED_PIPELINE",
+      "classification": "LEGACY_PARITY_AND_INTEGRATED_PIPELINE",
+      "seed": 0,
+      "stochastic": false,
+      "shape": [
+        64,
+        64
+      ],
+      "encoding": "GENERATED_JPEG_QUALITY_100_IMREAD_UNCHANGED_THEN_BGR2GRAY",
+      "rule": "fixtures.py fixed modular texture 40+((17*x+29*y+(x*y)%31)%61); source/background rasters frozen before measurement",
+      "source_mask": "[H/2-4:H/2+4,W/2-4:W/2+4]",
+      "background_mask": "[H/2-12:H/2-8,W/2-8:W/2]",
+      "source_count": 64,
+      "background_count": 32,
+      "expected_geometry": "NO_PUBLIC_EVENT_RESULT",
+      "expected_support_counts": "NOT_EVALUATED_NO_EVENT",
+      "expected_measurements": "FLOAT64_DECODED_SAMPLED_ARRAY_ORACLE_IF_GEOMETRY_ACCEPTED; OTHERWISE_BOTH_NOT_EVALUATED",
+      "tolerance_profile": "B3_PROPOSED_PARITY_V1",
+      "case_seconds_cap": 60,
+      "output_bytes_cap": 8388608,
+      "expected_exception": "INPUT_CONTRACT_INVALID",
+      "expected_calls": "No decoder/correction/fit/warp/P/I before public metadata rejection",
+      "emitting_support": "center4x4 inside fixed8x8 aperture",
+      "containment_oracle": "Project generated emitting rectangle plus fixed interpolation pad (1px;2px fractional scenario) through known source shifts and actual accepted matrices; require complete raster enclosure, independently of spectral excess. This bounds only declared pre-JPEG generated source geometry, not physical PSF/radiometry."
+    },
+    {
+      "case_id": "P13_BAD_EXPOSURE",
+      "producer_mode": "GENERATED_PIPELINE",
+      "classification": "LEGACY_PARITY_AND_INTEGRATED_PIPELINE",
+      "seed": 0,
+      "stochastic": false,
+      "shape": [
+        64,
+        64
+      ],
+      "encoding": "GENERATED_JPEG_QUALITY_100_IMREAD_UNCHANGED_THEN_BGR2GRAY",
+      "rule": "fixtures.py fixed modular texture 40+((17*x+29*y+(x*y)%31)%61); source/background rasters frozen before measurement",
+      "source_mask": "[H/2-4:H/2+4,W/2-4:W/2+4]",
+      "background_mask": "[H/2-12:H/2-8,W/2-8:W/2]",
+      "source_count": 64,
+      "background_count": 32,
+      "expected_geometry": "NO_PUBLIC_EVENT_RESULT",
+      "expected_support_counts": "NOT_EVALUATED_NO_EVENT",
+      "expected_measurements": "FLOAT64_DECODED_SAMPLED_ARRAY_ORACLE_IF_GEOMETRY_ACCEPTED; OTHERWISE_BOTH_NOT_EVALUATED",
+      "tolerance_profile": "B3_PROPOSED_PARITY_V1",
+      "case_seconds_cap": 60,
+      "output_bytes_cap": 8388608,
+      "expected_exception": "INPUT_CONTRACT_INVALID",
+      "expected_calls": "No decoder/correction/fit/warp/P/I before public metadata rejection",
+      "emitting_support": "center4x4 inside fixed8x8 aperture",
+      "containment_oracle": "Project generated emitting rectangle plus fixed interpolation pad (1px;2px fractional scenario) through known source shifts and actual accepted matrices; require complete raster enclosure, independently of spectral excess. This bounds only declared pre-JPEG generated source geometry, not physical PSF/radiometry."
+    },
+    {
+      "case_id": "P14_BOUNDARY128",
+      "producer_mode": "GENERATED_PIPELINE",
+      "classification": "LEGACY_PARITY_AND_INTEGRATED_PIPELINE",
+      "seed": 0,
+      "stochastic": false,
+      "shape": [
+        128,
+        128
+      ],
+      "encoding": "GENERATED_JPEG_QUALITY_100_IMREAD_UNCHANGED_THEN_BGR2GRAY",
+      "rule": "fixtures.py fixed modular texture 40+((17*x+29*y+(x*y)%31)%61); source/background rasters frozen before measurement",
+      "source_mask": "[H/2-4:H/2+4,W/2-4:W/2+4]",
+      "background_mask": "[H/2-12:H/2-8,W/2-8:W/2]",
+      "source_count": 64,
+      "background_count": 32,
+      "expected_geometry": "MATCH_INDEPENDENT_PINNED_LEGACY_ORACLE_STATE_AND_TELEMETRY",
+      "expected_support_counts": "EXACT_EQUALITY_TO_INDEPENDENT_LEGACY_MASK_ORACLE_NOT_NEW_IMPLEMENTATION",
+      "expected_measurements": "If independent legacy rejects pair/common gate: P/I NOT_EVALUATED. Any legacy accepted result is compared fully, not force-rejected to fit scene truth.",
+      "tolerance_profile": "B3_PROPOSED_PARITY_V1",
+      "case_seconds_cap": 60,
+      "output_bytes_cap": 8388608,
+      "true_source_to_reference": [
+        [
+          -60,
+          0
+        ],
+        [
+          0,
+          0
+        ]
+      ],
+      "emitting_support": "center4x4 inside fixed8x8 aperture",
+      "containment_oracle": "Project generated emitting rectangle plus fixed interpolation pad (1px;2px fractional scenario) through known source shifts and actual accepted matrices; require complete raster enclosure, independently of spectral excess. This bounds only declared pre-JPEG generated source geometry, not physical PSF/radiometry."
+    },
+    {
+      "case_id": "U01_ZERO_EXCESS",
+      "producer_mode": "UNIT_MATH_ONLY",
+      "classification": "UNIT_MATH",
+      "seed": 0,
+      "stochastic": false,
+      "shape": [
+        32,
+        32
+      ],
+      "encoding": "GENERATED_ALIGNED_FLOAT32_NO_DECODER_NO_GEOMETRY",
+      "source_mask": "[12:20,12:20]",
+      "background_mask": "[4:8,8:16]",
+      "expected_geometry": "NULL_UNIT_SCOPE_NO_ACCEPTED_GEOMETRY",
+      "expected": {
+        "p_valid": 1024,
+        "p_delta_source": 0,
+        "source_count": 64,
+        "background_count": 32,
+        "net_signals_770_750_780": [
+          1024,
+          1024,
+          1024
+        ],
+        "net_c": 1024,
+        "net_d": 0,
+        "numeric_ratio": 0,
+        "i_status": "UNDEFINED",
+        "i_reason": "DENOM_UNRESOLVED"
+      },
+      "expected_shared_identity": "UNIT_MATH_ONLY:<custody_sha256>",
+      "expected_calls": {
+        "decode": 0,
+        "correction": 0,
+        "preparation": 0,
+        "phase_fit": 0,
+        "signal_warp": 0,
+        "mask_warp": 0,
+        "mask_erosion": 0,
+        "P": 1,
+        "I": 1
+      },
+      "tolerance_profile": "B3_PROPOSED_ANALYTIC_V1",
+      "case_seconds_cap": 60,
+      "output_bytes_cap": 8388608
+    },
+    {
+      "case_id": "U02_KNOWN_EXCESS",
+      "producer_mode": "UNIT_MATH_ONLY",
+      "classification": "UNIT_MATH",
+      "seed": 0,
+      "stochastic": false,
+      "shape": [
+        32,
+        32
+      ],
+      "encoding": "GENERATED_ALIGNED_FLOAT32_NO_DECODER_NO_GEOMETRY",
+      "source_mask": "[12:20,12:20]",
+      "background_mask": "[4:8,8:16]",
+      "expected_geometry": "NULL_UNIT_SCOPE_NO_ACCEPTED_GEOMETRY",
+      "expected": {
+        "p_valid": 1024,
+        "p_delta_source": 0.5,
+        "p_mean": "1/32",
+        "source_count": 64,
+        "background_count": 32,
+        "gross": [
+          3072,
+          2048,
+          2048
+        ],
+        "background_means": [
+          16,
+          16,
+          16
+        ],
+        "net_signals_770_750_780": [
+          2048,
+          1024,
+          1024
+        ],
+        "net_c": 1024,
+        "net_d": 1024,
+        "numeric_ratio": 1,
+        "i_status": "UNDEFINED",
+        "i_reason": "DENOM_UNRESOLVED"
+      },
+      "expected_shared_identity": "UNIT_MATH_ONLY:<custody_sha256>",
+      "expected_calls": {
+        "decode": 0,
+        "correction": 0,
+        "preparation": 0,
+        "phase_fit": 0,
+        "signal_warp": 0,
+        "mask_warp": 0,
+        "mask_erosion": 0,
+        "P": 1,
+        "I": 1
+      },
+      "tolerance_profile": "B3_PROPOSED_ANALYTIC_V1",
+      "case_seconds_cap": 60,
+      "output_bytes_cap": 8388608
+    },
+    {
+      "case_id": "U03_NET_ZERO",
+      "producer_mode": "UNIT_MATH_ONLY",
+      "classification": "UNIT_MATH",
+      "seed": 0,
+      "stochastic": false,
+      "shape": [
+        32,
+        32
+      ],
+      "encoding": "GENERATED_ALIGNED_FLOAT32_NO_DECODER_NO_GEOMETRY",
+      "source_mask": "[12:20,12:20]",
+      "background_mask": "[4:8,8:16]",
+      "expected_geometry": "NULL_UNIT_SCOPE_NO_ACCEPTED_GEOMETRY",
+      "expected": {
+        "p_valid": 1024,
+        "p_delta_source": 0,
+        "source_count": 64,
+        "background_count": 32,
+        "net_signals_770_750_780": [
+          0,
+          0,
+          0
+        ],
+        "net_c": 0,
+        "net_d": 0,
+        "numeric_ratio": null,
+        "i_status": "UNDEFINED",
+        "i_reason": "DENOM_NONPOSITIVE"
+      },
+      "expected_shared_identity": "UNIT_MATH_ONLY:<custody_sha256>",
+      "expected_calls": {
+        "decode": 0,
+        "correction": 0,
+        "preparation": 0,
+        "phase_fit": 0,
+        "signal_warp": 0,
+        "mask_warp": 0,
+        "mask_erosion": 0,
+        "P": 1,
+        "I": 1
+      },
+      "tolerance_profile": "B3_PROPOSED_ANALYTIC_V1",
+      "case_seconds_cap": 60,
+      "output_bytes_cap": 8388608
+    },
+    {
+      "case_id": "U04_NET_NEGATIVE",
+      "producer_mode": "UNIT_MATH_ONLY",
+      "classification": "UNIT_MATH",
+      "seed": 0,
+      "stochastic": false,
+      "shape": [
+        32,
+        32
+      ],
+      "encoding": "GENERATED_ALIGNED_FLOAT32_NO_DECODER_NO_GEOMETRY",
+      "source_mask": "[12:20,12:20]",
+      "background_mask": "[4:8,8:16]",
+      "expected_geometry": "NULL_UNIT_SCOPE_NO_ACCEPTED_GEOMETRY",
+      "expected": {
+        "p_valid": 1024,
+        "p_delta_source": 0.5,
+        "source_count": 64,
+        "background_count": 32,
+        "net_signals_770_750_780": [
+          -256,
+          -512,
+          -512
+        ],
+        "net_c": -512,
+        "net_d": 256,
+        "numeric_ratio": null,
+        "i_status": "UNDEFINED",
+        "i_reason": "DENOM_NONPOSITIVE",
+        "flag": "SOURCE_SIGNAL_UNRESOLVED"
+      },
+      "expected_shared_identity": "UNIT_MATH_ONLY:<custody_sha256>",
+      "expected_calls": {
+        "decode": 0,
+        "correction": 0,
+        "preparation": 0,
+        "phase_fit": 0,
+        "signal_warp": 0,
+        "mask_warp": 0,
+        "mask_erosion": 0,
+        "P": 1,
+        "I": 1
+      },
+      "tolerance_profile": "B3_PROPOSED_ANALYTIC_V1",
+      "case_seconds_cap": 60,
+      "output_bytes_cap": 8388608
+    },
+    {
+      "case_id": "U05_BELOW_P_FLOOR",
+      "producer_mode": "UNIT_MATH_ONLY",
+      "classification": "UNIT_MATH",
+      "seed": 0,
+      "stochastic": false,
+      "shape": [
+        32,
+        32
+      ],
+      "encoding": "GENERATED_ALIGNED_FLOAT32_NO_DECODER_NO_GEOMETRY",
+      "source_mask": "[12:20,12:20]",
+      "background_mask": "[4:8,8:16]",
+      "expected_geometry": "NULL_UNIT_SCOPE_NO_ACCEPTED_GEOMETRY",
+      "expected": {
+        "p_valid": 0,
+        "p_status": "UNDEFINED",
+        "p_reason": "BELOW_LEGACY_NUMERIC_FLOOR",
+        "source_count": 64,
+        "background_count": 32,
+        "net_signals_770_750_780": [
+          128,
+          64,
+          64
+        ],
+        "net_c": 64,
+        "net_d": 64,
+        "numeric_ratio": 1,
+        "i_status": "UNDEFINED",
+        "i_reason": "DENOM_UNRESOLVED"
+      },
+      "expected_shared_identity": "UNIT_MATH_ONLY:<custody_sha256>",
+      "expected_calls": {
+        "decode": 0,
+        "correction": 0,
+        "preparation": 0,
+        "phase_fit": 0,
+        "signal_warp": 0,
+        "mask_warp": 0,
+        "mask_erosion": 0,
+        "P": 1,
+        "I": 1
+      },
+      "tolerance_profile": "B3_PROPOSED_ANALYTIC_V1",
+      "case_seconds_cap": 60,
+      "output_bytes_cap": 8388608
+    },
+    {
+      "case_id": "U06_UNRESOLVED",
+      "producer_mode": "UNIT_MATH_ONLY",
+      "classification": "UNIT_MATH",
+      "seed": 0,
+      "stochastic": false,
+      "shape": [
+        32,
+        32
+      ],
+      "encoding": "GENERATED_ALIGNED_FLOAT32_NO_DECODER_NO_GEOMETRY",
+      "source_mask": "[12:20,12:20]",
+      "background_mask": "[4:8,8:16]",
+      "expected_geometry": "NULL_UNIT_SCOPE_NO_ACCEPTED_GEOMETRY",
+      "expected": {
+        "same_analytic_oracle_as": "U02_KNOWN_EXCESS",
+        "supported_ratio": null,
+        "covariance": null,
+        "denominator_resolved": "UNKNOWN"
+      },
+      "expected_shared_identity": "UNIT_MATH_ONLY:<custody_sha256>",
+      "expected_calls": {
+        "decode": 0,
+        "correction": 0,
+        "preparation": 0,
+        "phase_fit": 0,
+        "signal_warp": 0,
+        "mask_warp": 0,
+        "mask_erosion": 0,
+        "P": 1,
+        "I": 1
+      },
+      "tolerance_profile": "B3_PROPOSED_ANALYTIC_V1",
+      "case_seconds_cap": 60,
+      "output_bytes_cap": 8388608
+    },
+    {
+      "case_id": "U07_INCOMPLETE",
+      "producer_mode": "UNIT_MATH_ONLY",
+      "classification": "UNIT_MATH",
+      "seed": 0,
+      "stochastic": false,
+      "shape": [
+        32,
+        32
+      ],
+      "encoding": "GENERATED_ALIGNED_FLOAT32_NO_DECODER_NO_GEOMETRY",
+      "source_mask": "[12:20,12:20]",
+      "background_mask": "[4:8,8:16]",
+      "expected_geometry": "NULL_UNIT_SCOPE_NO_ACCEPTED_GEOMETRY",
+      "expected": {
+        "common_count": 1023,
+        "p_valid": 1023,
+        "source_count": 64,
+        "source_observable": 63,
+        "background_count": 32,
+        "i_status": "INELIGIBLE",
+        "i_reason": "SOURCE_TRUNCATED",
+        "net_signals": null
+      },
+      "expected_shared_identity": "UNIT_MATH_ONLY:<custody_sha256>",
+      "expected_calls": {
+        "decode": 0,
+        "correction": 0,
+        "preparation": 0,
+        "phase_fit": 0,
+        "signal_warp": 0,
+        "mask_warp": 0,
+        "mask_erosion": 0,
+        "P": 1,
+        "I": 1
+      },
+      "tolerance_profile": "B3_PROPOSED_ANALYTIC_V1",
+      "case_seconds_cap": 60,
+      "output_bytes_cap": 8388608
+    },
+    {
+      "case_id": "U08_OVERLAPPING_BACKGROUND",
+      "producer_mode": "UNIT_MATH_ONLY",
+      "classification": "UNIT_MATH",
+      "seed": 0,
+      "stochastic": false,
+      "shape": [
+        32,
+        32
+      ],
+      "encoding": "GENERATED_ALIGNED_FLOAT32_NO_DECODER_NO_GEOMETRY",
+      "source_mask": "[12:20,12:20]",
+      "background_mask": "same_as_source",
+      "expected_geometry": "NULL_UNIT_SCOPE_NO_ACCEPTED_GEOMETRY",
+      "expected": {
+        "common_count": 1024,
+        "p_valid": 1024,
+        "source_count": 64,
+        "background_count": 64,
+        "i_status": "INELIGIBLE",
+        "i_reason": "BACKGROUND_UNSUPPORTED",
+        "net_signals": null
+      },
+      "expected_shared_identity": "UNIT_MATH_ONLY:<custody_sha256>",
+      "expected_calls": {
+        "decode": 0,
+        "correction": 0,
+        "preparation": 0,
+        "phase_fit": 0,
+        "signal_warp": 0,
+        "mask_warp": 0,
+        "mask_erosion": 0,
+        "P": 1,
+        "I": 1
+      },
+      "tolerance_profile": "B3_PROPOSED_ANALYTIC_V1",
+      "case_seconds_cap": 60,
+      "output_bytes_cap": 8388608
+    },
+    {
+      "case_id": "U09_IMMUTABLE",
+      "producer_mode": "UNIT_MATH_ONLY",
+      "classification": "UNIT_MATH",
+      "seed": 0,
+      "stochastic": false,
+      "shape": [
+        32,
+        32
+      ],
+      "encoding": "GENERATED_ALIGNED_FLOAT32_NO_DECODER_NO_GEOMETRY",
+      "source_mask": "[12:20,12:20]",
+      "background_mask": "[4:8,8:16]",
+      "expected_geometry": "NULL_UNIT_SCOPE_NO_ACCEPTED_GEOMETRY",
+      "expected": {
+        "same_analytic_oracle_as": "U02_KNOWN_EXCESS",
+        "writable_alias_attempt": "raises ValueError or contract lifetime error",
+        "stale_view": "Accessing lease.planes/common/provenance after close raises BUFFER_LIFETIME_VIOLATION; any already-created internal read-only snapshot retains independent immutable byte ownership, never reused native memory",
+        "public_unit_to_event": "UNAUTHORIZED_INPUT_ORIGIN"
+      },
+      "expected_shared_identity": "UNIT_MATH_ONLY:<custody_sha256>",
+      "expected_calls": {
+        "decode": 0,
+        "correction": 0,
+        "preparation": 0,
+        "phase_fit": 0,
+        "signal_warp": 0,
+        "mask_warp": 0,
+        "mask_erosion": 0,
+        "P": 1,
+        "I": 1
+      },
+      "tolerance_profile": "B3_PROPOSED_ANALYTIC_V1",
+      "case_seconds_cap": 60,
+      "output_bytes_cap": 8388608
+    },
+    {
+      "case_id": "X01_FOREIGN_TICKET",
+      "producer_mode": "ADVERSARIAL",
+      "classification": "CUSTODY_NEGATIVE",
+      "seed": 0,
+      "stochastic": false,
+      "shape": null,
+      "rule": "Pass a plain object, copied/foreign/spent ticket, a generated=True dictionary, an external array or fake accepted matrix to public run_event; none is a session-issued ticket",
+      "expected_exception": "UNAUTHORIZED_INPUT_ORIGIN",
+      "expected_geometry": "NO_PUBLIC_EVENT_RESULT",
+      "expected_calls": "ZERO_ALGORITHM_CALLS",
+      "tolerance_profile": "EXACT_STATE_ONLY",
+      "case_seconds_cap": 60,
+      "output_bytes_cap": 8388608
+    }
+  ]
+}

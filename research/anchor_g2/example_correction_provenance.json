@@ -1,0 +1,44 @@
+{
+  "schema": "CORRECTION_PROVENANCE_V1",
+  "correction_sha256": "REPLACE_WITH_SHA256",
+  "linear_8bit_dn": false,
+  "has_measured_dark": false,
+  "channels": {
+    "750": {
+      "camera_id": "CAMERA_1",
+      "wavelength_nm": 750,
+      "correction_port": 1,
+      "acquisition": {
+        "exposure_us": 100,
+        "gain": 1,
+        "encoding": "LINEAR_UINT8_MONO",
+        "filter_id": "REPLACE_FILTER_750",
+        "optical_configuration": "REPLACE_WITH_ACTUAL_OPTICS_ID"
+      }
+    },
+    "770": {
+      "camera_id": "CAMERA_0",
+      "wavelength_nm": 770,
+      "correction_port": 0,
+      "acquisition": {
+        "exposure_us": 100,
+        "gain": 1,
+        "encoding": "LINEAR_UINT8_MONO",
+        "filter_id": "REPLACE_FILTER_770",
+        "optical_configuration": "REPLACE_WITH_ACTUAL_OPTICS_ID"
+      }
+    },
+    "780": {
+      "camera_id": "CAMERA_2",
+      "wavelength_nm": 780,
+      "correction_port": 2,
+      "acquisition": {
+        "exposure_us": 100,
+        "gain": 1,
+        "encoding": "LINEAR_UINT8_MONO",
+        "filter_id": "REPLACE_FILTER_780",
+        "optical_configuration": "REPLACE_WITH_ACTUAL_OPTICS_ID"
+      }
+    }
+  }
+}

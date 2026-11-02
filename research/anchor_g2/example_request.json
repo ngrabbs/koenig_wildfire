@@ -1,0 +1,67 @@
+{
+  "schema": "OFFLINE_TRIPLET_V1",
+  "channels": [
+    {
+      "path": "770.png",
+      "sha256": "REPLACE_WITH_SHA256",
+      "camera_id": "CAMERA_0",
+      "wavelength_nm": 770,
+      "correction_port": 0,
+      "acquisition": {
+        "exposure_us": 100,
+        "gain": 1,
+        "encoding": "LINEAR_UINT8_MONO",
+        "filter_id": "REPLACE_FILTER_770",
+        "optical_configuration": "REPLACE_WITH_ACTUAL_OPTICS_ID"
+      }
+    },
+    {
+      "path": "750.png",
+      "sha256": "REPLACE_WITH_SHA256",
+      "camera_id": "CAMERA_1",
+      "wavelength_nm": 750,
+      "correction_port": 1,
+      "acquisition": {
+        "exposure_us": 100,
+        "gain": 1,
+        "encoding": "LINEAR_UINT8_MONO",
+        "filter_id": "REPLACE_FILTER_750",
+        "optical_configuration": "REPLACE_WITH_ACTUAL_OPTICS_ID"
+      }
+    },
+    {
+      "path": "780.png",
+      "sha256": "REPLACE_WITH_SHA256",
+      "camera_id": "CAMERA_2",
+      "wavelength_nm": 780,
+      "correction_port": 2,
+      "acquisition": {
+        "exposure_us": 100,
+        "gain": 1,
+        "encoding": "LINEAR_UINT8_MONO",
+        "filter_id": "REPLACE_FILTER_780",
+        "optical_configuration": "REPLACE_WITH_ACTUAL_OPTICS_ID"
+      }
+    }
+  ],
+  "correction": {
+    "path": "correction.npz",
+    "sha256": "REPLACE_WITH_SHA256"
+  },
+  "correction_provenance": {
+    "path": "correction_provenance.json",
+    "sha256": "REPLACE_WITH_SHA256"
+  },
+  "eligibility": {
+    "path": "eligibility.json",
+    "sha256": "REPLACE_WITH_SHA256"
+  },
+  "source_mask": {
+    "path": "source.npy",
+    "sha256": "REPLACE_WITH_SHA256"
+  },
+  "background_mask": {
+    "path": "background.npy",
+    "sha256": "REPLACE_WITH_SHA256"
+  }
+}

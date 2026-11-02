@@ -1,0 +1,2 @@
+# Preserve recorded frozen-source byte identities across Windows/Linux checkouts.
+* -text whitespace=cr-at-eol

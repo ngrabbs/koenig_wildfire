@@ -1,0 +1,20 @@
+{
+  "schema": "INDEPENDENT_SUPPORT_V1",
+  "optical_compatible": false,
+  "synchronized": false,
+  "evidence_reference": "",
+  "alignment_residual_px": null,
+  "p_tolerance_px": null,
+  "i_margin_px": null,
+  "source_complete": false,
+  "background_representative": false,
+  "selection_independent": false,
+  "image_sha256s": [
+    "REPLACE_770_SHA256",
+    "REPLACE_750_SHA256",
+    "REPLACE_780_SHA256"
+  ],
+  "source_mask_sha256": "REPLACE_WITH_SHA256",
+  "background_mask_sha256": "REPLACE_WITH_SHA256",
+  "transforms": []
+}

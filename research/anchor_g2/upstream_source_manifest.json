@@ -1,0 +1,25 @@
+{
+  "schema": "J7B2_SOURCE_MANIFEST_V1",
+  "build_id": "fdb861bf2b73920d4c84acb4df51f50455407703933d3d902d1c504257ba3f39",
+  "files": {
+    "optiona_cpu/__init__.py": "da1ef91f62c66015bf7f50b904a0b49311c75cea70a696d69ba260857f0132a4",
+    "optiona_cpu/_legacy.py": "abdaadbe51d8553a0fbcec4342220eb9a6121c244349c8248faa78dd49a13309",
+    "optiona_cpu/api.py": "49f1790ba1ffb1ae37054b486d7ff665c977ec51660db4ad17b5642c49227a58",
+    "optiona_cpu/constants.py": "85e762b12da5d79f6952442ad9a059b16529ce411b49ce0f423d132ce5ea1349",
+    "optiona_cpu/errors.py": "2a1737d0fed6f37af26cdcd94a3f8b033aea27ed29b42c91ba1b8b80498d9983",
+    "optiona_cpu/fixtures.py": "ece3c42c93bd1f4b6be0c6766db841a8d4ef40a5045ac9ae01a207e33888d915",
+    "optiona_cpu/geometry.py": "f38466e34a9404d7c11d1716a67e44d3539df11013dd74b49c050779262fc43d",
+    "optiona_cpu/immutable.py": "1b3e3f4ee039e7c20174530b807cab2be01a2a563fc2f4ae704df0cdccef8d02",
+    "optiona_cpu/measurements.py": "62151ae5c785c7973317d2df078cd76d728815d1e628d78d3afda5061bf29e8b",
+    "optiona_cpu/runtime.py": "aec2a6bcdddee2a3afd3227de53dc827215aae0c25c81d2e26de2c1909b7d5cd",
+    "optiona_cpu/schema.py": "a254fa05b24740b4e2056e41d119303b0abc64100a6c3de636c9527f92a3c383",
+    "execution_policy.json": "36d6eef1db981a934392573040553f7a39e545682882765ac3e9b265881811fe",
+    "environment_manifest.json": "c1a20d9e8b31feff2ccba21f52168fa365ecb58ca5b1ead282e72ff3b3da462c",
+    "fixture_spec.json": "66edd737a875e0b5b04de6c0904f1752e6a6f0e0cfaca0c3acc87501642a7dbf",
+    "result_schema.json": "9ba5e63e217563caf908ebd9b1e980af8df783c7d39ce9a3b71590133c8e1239"
+  },
+  "reference_code_digest": "db25a7fd9b4fa25bff5f3fec329d0433b339c21d800810f11e577d333c379901",
+  "execution_status": "NOT_RUN",
+  "policy_enabled": false,
+  "note": "B3 activation must use separately approved copy/policy/source-manifest freeze; this B2 package remains protected."
+}

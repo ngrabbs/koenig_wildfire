@@ -1,0 +1,7 @@
+{
+  "schema": "J7B2_IMPLEMENTATION_ONLY_POLICY_V1",
+  "execution_enabled": false,
+  "approval_scope": "B2_WRITE_AND_STATIC_INSPECTION_ONLY",
+  "generated_only": true,
+  "notice": "No B3 execution approved. A separately authorized B3 copy/policy/source-manifest freeze is required; do not edit this frozen B2 package implicitly."
+}
