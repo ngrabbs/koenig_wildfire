@@ -95,7 +95,7 @@ class View:
         return {'geometry_id': self.geometry}
 
 
-def register(images, gains, darks):
+def register(images, gains, darks, diagnostics=None):
     """Frozen correction/preparation/phase kernels; same B2 sampling and masks."""
     cv2.setNumThreads(1)
     cv2.setRNGSeed(0)
@@ -108,11 +108,20 @@ def register(images, gains, darks):
     base = np.zeros((h, w), bool)
     base[my:h-my, mx:w-mx] = True
     masks = [base & (images[p] < 254) & (values[p] < 255*256) for p in range(3)]
-    prep = [L.prepare(a, mask) for a, mask in zip(values, masks)]
+    prep = []
+    for port, (a, mask) in enumerate(zip(values, masks)):
+        try:
+            prep.append(L.prepare(a, mask))
+        except L.MethodError as error:
+            if diagnostics is not None:
+                diagnostics.update(state='REJECTED', preparation_port=port, reason=str(error))
+            raise
     pairs = []
     for p in (1, 2):
         result = L.phase_prepared(prep[p], prep[0])
         pairs.append(result)
+        if diagnostics is not None:
+            diagnostics.update(pairs=pairs, state='ACCEPTED' if result['status'] == 'PASS' else 'REJECTED')
         require(result['status'] == 'PASS', 'GEOMETRY_REJECTED:' + result['reason'])
     matrices = [np.eye(3)] + [np.array(row['matrix']) for row in pairs]
     planes, valid = [], []
@@ -123,6 +132,11 @@ def register(images, gains, darks):
                               borderType=cv2.BORDER_CONSTANT, borderValue=0) > 0)
     common = np.logical_and.reduce(valid)
     fraction = float(common.sum()/max(1, base.sum()))
+    if diagnostics is not None:
+        diagnostics.update(common_count=int(common.sum()), base_count=int(base.sum()),
+                           common_fraction=fraction, frame_pixels=int(common.size))
+        if fraction < .6:
+            diagnostics.update(state='REJECTED', reason='INSUFFICIENT_COMMON_SUPPORT')
     require(fraction >= .6, 'INSUFFICIENT_COMMON_SUPPORT')
     geometry = {'method': 'PHASE_ANCHOR_G2_COMPATIBLE', 'pairs': pairs,
                 'transforms': [m.tolist() for m in matrices], 'common_fraction': fraction,

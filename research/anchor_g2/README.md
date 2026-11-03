@@ -1,10 +1,16 @@
 # Offline Option A: shared registration, P and integrated brightness I
 
+For the minimal three-camera JPEG workflow, start with [Nick's test-day guide](NICK_TEST_DAY.md).
+
 Research diagnostics for **stored** 770/750/780 nm triplets. No camera, CAN,
 timer, Jetson service, fire threshold or classifier is connected. Every report
 keeps `production_decision=NOT_CALIBRATED` and `scientific_decision=UNKNOWN`.
 This is a new offline adapter, **not** the disabled B3 experiment or its safety
 qualification. It does not provide a hard resource-isolation guarantee.
+
+An additional, explicitly opted-in JPEG code-value pathway is documented in
+[`EXPLORATORY_JPEG.md`](EXPLORATORY_JPEG.md). It does not relax the strict
+linear-image pathway described below or establish radiometric calibration.
 
 ## Install and run
 
