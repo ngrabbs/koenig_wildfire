@@ -1,37 +1,61 @@
-# Nick: stored three-camera test-day processor
+# Nick: three-camera JPEG testing modes
 
-Research only. Production stays **NOT_CALIBRATED**, science **UNKNOWN**. This package
-never captures images, classifies fire, or authorizes formal B3. Matte dark material
-can simplify a background; it does not establish linear radiometry or correct timing.
+Research only: **NOT_CALIBRATED / UNKNOWN**. No capture-software change, classifier,
+threshold, hardware access or formal B3 authorization. Start with repeated fire-off
+and fire-on captures against the proposed uniform matte dark background, with
+stationary reference features near the source plane.
 
-## Install once
+## Install
 
-From this repository root, use Python **3.12.14**:
+From repository root, Python **3.12.14**:
 
 ```powershell
 py -3.12 -m venv .venv-optiona
 .\.venv-optiona\Scripts\python.exe --version
 .\.venv-optiona\Scripts\python.exe -m pip install -r research/anchor_g2/requirements.txt
-.\.venv-optiona\Scripts\python.exe -B -m unittest research.anchor_g2.test_adapter research.anchor_g2.test_exploratory_jpeg -v
+.\.venv-optiona\Scripts\python.exe -B -m unittest research.anchor_g2.test_adapter research.anchor_g2.test_exploratory_jpeg research.anchor_g2.test_modes -v
 ```
 
-Pins: NumPy2.3.5 and opencv-python-headless5.0.0.93 (reports OpenCV5.0.0).
-Different builds/platforms are not independently numerically qualified. No VM,
-shift sweep, historical dataset runner or B3 supervisor is needed.
+NumPy2.3.5; opencv-python-headless5.0.0.93 reports OpenCV5.0.0. Cross-platform/native
+build equivalence is not qualified. No VM, historical experiment runner or sweeps
+are needed. Use the existing stored captures; do not modify camera software.
 
-## Inputs and first geometry check
+## Select what to measure
 
-Keep originals outside the repository. Copy `example_jpeg_request.json` to
-`C:\NickData\triplet.json`. Set paths to your actual JPEGs, keeping cam0=770,
-cam1=750, cam2=780 nm. Paths resolve relative to the manifest. Record each actual
-exposure, gain, AE setting, original timestamp/time basis, focus, filter/optics,
-illumination and known capture interval in `acquisition`. Leave genuinely unknown
-values null; the processor records them without pretending to verify them.
+| CLI mode | Image geometry | Measurement | Region requirement |
+|---|---|---|---|
+| `registered-boxes` (default) | Frozen ANCHOR_G2 aligns750/780 to770 | Existing registered P and background-subtracted integrated brightness | Shared source/background rectangles on the registered770 grid, or existing independent-support contract |
+| `independent-boxes` | Native decoded images; no registration, warp or crop | Per-camera source sum minus its source count times its own background mean | Explicit separate source/background rectangles for EACH camera |
+| `whole-frame` | Every native pixel; no registration/resize | Gross totals only; **no background subtraction** | No regions |
 
-Fill hashes after editing paths (PowerShell; UTF-8 without BOM):
+Each uses C=(S750+2*S780)/3 and D=S770-C. Native modes do not compute pixelwise P,
+which needs corresponding geometry. Independent-box totals use each camera's own
+pixel counts; unequal source areas are reported, never normalized automatically.
+Whole-frame differences can reflect field of view, vignetting, pixel counts or
+scene content. A small flame can be heavily diluted by the full-image background.
+
+## Prepare one manifest per mode
+
+Copy the appropriate template into your image directory:
+
+- `example_registered_boxes.json` -> `C:\NickData\registered.json`
+- `example_independent_boxes.json` -> `C:\NickData\independent.json`
+- `example_whole_frame.json` -> `C:\NickData\whole.json`
+
+All example rectangles are **illustrative coordinates, not test-day approvals**.
+The older `example_jpeg_request.json` still works as a default registered geometry
+check with no regions. Fill paths/hashes and metadata before processing.
+
+Keep explicit mapping cam0=770, cam1=750, cam2=780. Canonical camera IDs0/1/2 with
+swapped wavelength assignments are rejected. Paths resolve relative to the
+manifest. Record actual exposure_us, gain, AE, original timestamp/time basis,
+focus, filter/optical configuration, illumination and sequential capture span in
+`acquisition`. Unknown values stay null; supplied metadata are recorded, not verified.
+
+Fill SHA256 after editing paths (choose the manifest being prepared):
 
 ```powershell
-$p = 'C:\NickData\triplet.json'
+$p = 'C:\NickData\registered.json'
 $m = Get-Content -Raw -LiteralPath $p | ConvertFrom-Json
 foreach ($c in $m.channels) {
     $f = if ([IO.Path]::IsPathRooted($c.path)) { $c.path } else { Join-Path (Split-Path $p) $c.path }
@@ -40,87 +64,88 @@ foreach ($c in $m.channels) {
 [IO.File]::WriteAllText($p, ($m | ConvertTo-Json -Depth 12), [Text.UTF8Encoding]::new($false))
 ```
 
-Leave `eligibility` and `provisional_regions` null for a geometry-only check.
+Define regions from continuum750/780 views and physical holder/background features,
+BEFORE inspecting spectral excess. Rectangles `[x0,y0,x1,y1]` are zero-based,
+right/bottom exclusive; original image orientation retained. Source/background
+must be nonempty, in bounds and disjoint within each image. Freeze choices and
+record rationale, correspondence uncertainty and possible incomplete containment.
+
+For registered mode, `provisional_regions` uses the shared770 grid. Any requested
+pixel outside common support prevents region measurements; no trimming is performed.
+Its optional independent-support pathway is unchanged (see README.md).
+
+For independent mode, `independent_regions.cameras` binds each native rectangle
+pair to camera_id AND wavelength. Record `selection_rationale`,
+`correspondence_description` and each `source_containment_note`. Equal pixel counts
+or independently entered coordinates do not prove the same physical coverage.
+There is no automatic ROI selection, correspondence check or approval.
+
+Whole-frame mode has no source/background fields. Incompatible non-null region or
+eligibility fields are rejected rather than ignored. Native modes always remain
+provisional even if the operator believes correspondence is good. The strict
+linear-image path and independent eligibility contracts are unchanged.
+
+## Commands (repository root)
 
 ```powershell
-.\.venv-optiona\Scripts\python.exe -B -m research.anchor_g2 C:\NickData\triplet.json --exploratory-jpeg --output C:\NickData\geometry.json
+.\.venv-optiona\Scripts\python.exe -B -m research.anchor_g2 C:\NickData\registered.json --exploratory-jpeg --processing-mode registered-boxes --output C:\NickData\registered-result.json
+.\.venv-optiona\Scripts\python.exe -B -m research.anchor_g2 C:\NickData\independent.json --exploratory-jpeg --processing-mode independent-boxes --output C:\NickData\independent-result.json
+.\.venv-optiona\Scripts\python.exe -B -m research.anchor_g2 C:\NickData\whole.json --exploratory-jpeg --processing-mode whole-frame --output C:\NickData\whole-result.json
 ```
 
-`--output` refuses an existing file and never creates parent directories. Use a
-fresh output name for each run. Without it, JSON goes to stdout. Exit2 means UNKNOWN,
-including usable provisional diagnostics without independent eligibility; exit0
-means the existing numerical-eligibility path returned DIAGNOSTIC_ONLY, not validated
-science. A rejected registration has no forced fallback or spectral measurement.
+A manifest may set `processing_mode`; if both CLI and manifest specify it, they
+must agree. Omitting both preserves registered-boxes. `--processing-mode` requires
+`--exploratory-jpeg`. `--output` requires an existing parent directory and a NEW
+file; existing files are refused (also protected by exclusive creation). No aligned
+image or map files are written. Without `--output`, JSON prints to stdout.
 
-## Define regions independently, then process
+## Read the JSON
 
-Inspect continuum750/780 views, physical holder, matte background and stationary
-reference features before consulting770 excess. Define rectangles on the full-sized
-770 reference grid AFTER shared registration, in original image orientation:
-`[x0,y0,x1,y1]`, zero-based, right/bottom exclusive. Do not use a camera's native750
-coordinates as reference-grid coordinates. Keep source/background disjoint.
+`processing_mode` identifies the path; `channel_statistics` includes dimensions,
+intensity ranges, clipping and acquisition metadata. Registered mode includes
+matrices, acceptance and common support; native modes explicitly say NOT_REQUESTED
+and have no common geometric support. No failed registration is forced through.
 
-Replace `provisional_regions: null` with your own coordinates and rationale:
+Without independent evidence, top-level P/I remain null, status UNKNOWN and exit2.
+Usable `provisional.schema=PROVISIONAL_JPEG_DIAGNOSTICS` values can accompany exit2.
+Exit0 only denotes the existing eligible numerical path, not scientific validation.
 
-```json
-"provisional_regions": {
-  "schema": "PROVISIONAL_RECTANGLES_V1",
-  "source": [640, 380, 760, 500],
-  "background": [800, 380, 920, 500],
-  "selection_rationale": "REPLACE: physical source boundaries, background material, coordinate basis and unresolved containment"
-}
-```
+Registered `provisional.P_numerical`/`I_numerical` retain existing behavior. Frozen
+P summaries are whole-common-valid-field; source_valid_count is ROI-specific,
+not its mean/median. Frozen I reports gross/background/net signals; positive ratios
+still have unresolved uncertainty and supported_ratio null.
 
-**Those coordinates illustrate syntax, not a recommended mask for your test.**
-Freeze your actual region choices before numerical comparison. Use comparable
-physical regions for fire-off/fire-on; record any incomplete flame containment,
-shadows, reflections or source spill. The tool does not supply or approve masks.
-If any requested pixel is outside common support (including clipped/guard pixels),
-provisional region measurements stay unavailable; it does not silently trim the ROI.
+Native `provisional.channels` reports each region's sums, means, pixel counts,
+saturation and mask hash. `gross` (both modes) and `net` (independent only) report
+signals, continuum, excess and numeric_ratio. Ratios are suppressed for nonpositive
+continuum, continuum at floating-point roundoff scale, or saturation in measured
+regions; no pixels are silently dropped. The roundoff bound is8*float64 epsilon*
+max(1,sum absolute signals,cancellation scale), not a physical SNR/fire threshold.
+Small positive values above that bound still have **unresolved physical uncertainty**.
+Inspect net_to_gross_continuum and negative-channel flags. No supported ratio or
+calibrated emission is claimed. Whole-frame totals retain clipped pixels and flag
+saturation; dimensions can differ, but correspondence remains unknown.
 
-```powershell
-.\.venv-optiona\Scripts\python.exe -B -m research.anchor_g2 C:\NickData\triplet.json --exploratory-jpeg --output C:\NickData\diagnostics.json
-```
+`timing_seconds` separates input/decode/statistics, registration, measurement and
+total. Native registration time is0. Total measures the evaluator, excluding Python
+startup/imports and final JSON writing; small unclassified setup overhead remains.
+Windows times are not measured Jetson performance. Registered mode also computes
+P, so mode-total differences are not solely registration cost.
 
-All outputs are in that JSON: channel ranges/clipping, registration matrices and
-quality, common support, region definitions/counts/hashes, P numerical summaries,
-and integrated gross/background/net values. No aligned image or pixel map files
-are written. Frozen P provides whole-common-field valid-pixel summaries and map
-hash descriptors; its `source_valid_count` is ROI-specific, its mean/median are NOT
-ROI-only statistics. Use the same triplet/common geometry for comparison.
+## Experimental limitations
 
-## Interpret cautiously
+Keep exposure, gain, AE, focus, filters and illumination fixed; record fire-off/on
+close together with original timestamps. Use stationary features near the source;
+a uniformly dark view may lack registration texture or meaningful continuum.
+Historical captures were sequential over roughly2seconds per triplet. Record
+actual timing; a shared timestamp is not evidence of simultaneous flame views.
+JPEG gamma/ISP, compression, per-camera spectral response, vignetting and unknown
+flat/dark compatibility remain confounders. This pathway applies no correction and
+never assumes linear radiance. Positive D alone does not establish potassium or fire.
 
-Without independent support, top-level `P`/`I` remain null and status UNKNOWN.
-`provisional.schema=PROVISIONAL_JPEG_DIAGNOSTICS` holds separate unapproved numerical
-results. `P_numerical` uses the unchanged legacy continuum>=4 floor;
-`I_numerical` uses unchanged frozen integrated arithmetic and reports source sums,
-background means, net signals, continuum and additive excess. Positive numeric
-ratios do not establish resolved denominator uncertainty; `supported_ratio` stays
-null. Inspect `net_to_gross_continuum`, negative channel signals and reason flags.
-Very low or nonpositive continuum, saturation and background mismatch can make a
-ratio uninformative. No new denominator threshold or fire threshold is introduced.
-
-All JPEG quantities are code-value proxies, not radiance. Gamma/ISP, compression,
-camera/filter response, calibration compatibility and sequential capture remain
-unverified. Unit gain/zero offset only encode unchanged JPEG values for the frozen
-pipeline. No supplied JPEG calibration is accepted silently. The strict linear-image
-path is unchanged; see README.md. Independently justified hash-bound support can
-use the existing eligibility contract described there; never assert synchronization
-or source completeness merely to unlock P/I.
-
-For this test, keep exposure, gain, AE, focus, filters and illumination unchanged;
-record fire-off/on close together and preserve original timestamps. Use stationary
-reference features near the source plane and avoid clipping. A near-black background
-can leave too little texture for registration or too little continuum for ratios.
-The historical cameras captured sequentially over roughly2seconds; document actual
-timing rather than assuming simultaneous views of a flickering flame.
-
-## Verified smoke example
-
-The command shape above was exercised end-to-end with the existing200us control
-20261014_155011_645, using explicit archive-member inputs and the previously defined
-holder/background rectangles (not new test-day approvals). It returned accepted
-engineering geometry and separate provisional numerical outputs, with UNKNOWN /
-NOT_CALIBRATED and strict P/I unavailable. Original JPEGs were read-only. This is
-software smoke verification, not wildfire accuracy or formal B3 qualification.
+The three CLI paths were exercised on the existing200us October14 control triplet
+20261014_155011_645 with fixed illustrative/historical regions. All produced UNKNOWN
+research results. Registered numerical P/I matched the previously published smoke
+output exactly. Native numerical differences are expected from sampling/region
+placement; whole-frame gross and box-net results measure different things.
+See THREE_MODE_VERIFICATION.md for measured values and one-run timing conditions.

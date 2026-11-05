@@ -1,0 +1,122 @@
+{
+  "schema": "EXPLORATORY_JPEG_TRIPLET_V1",
+  "mode": "EXPLORATORY_JPEG",
+  "correction_policy": "NONE_UNVERIFIED",
+  "calibration_reason": "JPEG response and flat/dark compatibility are not established; no correction applied",
+  "channels": [
+    {
+      "path": "cam0_770.jpg",
+      "sha256": "REPLACE_WITH_FILE_SHA256",
+      "camera_id": "0",
+      "wavelength_nm": 770,
+      "acquisition": {
+        "exposure_us": null,
+        "gain": null,
+        "auto_exposure": null,
+        "capture_timestamp": null,
+        "timestamp_basis": null,
+        "focus": null,
+        "filter_id": null,
+        "optical_configuration": null,
+        "illumination": null,
+        "sequential_capture_span_ms": null
+      }
+    },
+    {
+      "path": "cam1_750.jpg",
+      "sha256": "REPLACE_WITH_FILE_SHA256",
+      "camera_id": "1",
+      "wavelength_nm": 750,
+      "acquisition": {
+        "exposure_us": null,
+        "gain": null,
+        "auto_exposure": null,
+        "capture_timestamp": null,
+        "timestamp_basis": null,
+        "focus": null,
+        "filter_id": null,
+        "optical_configuration": null,
+        "illumination": null,
+        "sequential_capture_span_ms": null
+      }
+    },
+    {
+      "path": "cam2_780.jpg",
+      "sha256": "REPLACE_WITH_FILE_SHA256",
+      "camera_id": "2",
+      "wavelength_nm": 780,
+      "acquisition": {
+        "exposure_us": null,
+        "gain": null,
+        "auto_exposure": null,
+        "capture_timestamp": null,
+        "timestamp_basis": null,
+        "focus": null,
+        "filter_id": null,
+        "optical_configuration": null,
+        "illumination": null,
+        "sequential_capture_span_ms": null
+      }
+    }
+  ],
+  "eligibility": null,
+  "processing_mode": "independent-boxes",
+  "independent_regions": {
+    "schema": "INDEPENDENT_RECTANGLES_V1",
+    "selection_rationale": "REPLACE: independently specify each native image rectangle before examining excess",
+    "correspondence_description": "REPLACE: explain same physical source, pixel scale and representative background; unknowns remain unverified",
+    "cameras": [
+      {
+        "camera_id": "0",
+        "wavelength_nm": 770,
+        "source": [
+          640,
+          380,
+          760,
+          500
+        ],
+        "background": [
+          800,
+          380,
+          920,
+          500
+        ],
+        "source_containment_note": "UNKNOWN; illustrative coordinates only, replace before use"
+      },
+      {
+        "camera_id": "1",
+        "wavelength_nm": 750,
+        "source": [
+          702,
+          512,
+          822,
+          632
+        ],
+        "background": [
+          862,
+          512,
+          982,
+          632
+        ],
+        "source_containment_note": "UNKNOWN; illustrative coordinates only, replace before use"
+      },
+      {
+        "camera_id": "2",
+        "wavelength_nm": 780,
+        "source": [
+          596,
+          438,
+          716,
+          558
+        ],
+        "background": [
+          756,
+          438,
+          876,
+          558
+        ],
+        "source_containment_note": "UNKNOWN; illustrative coordinates only, replace before use"
+      }
+    ]
+  }
+}

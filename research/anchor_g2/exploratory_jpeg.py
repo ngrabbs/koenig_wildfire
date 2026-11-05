@@ -1,6 +1,7 @@
 """Explicit JPEG code-value exploration; no assumption of radiometric linearity."""
 import io
 import sys
+from time import perf_counter
 import zipfile
 from pathlib import Path
 import cv2
@@ -28,7 +29,11 @@ def intensity(a):
                 clipping_fraction_ge254=float((a >= 254).mean()))
 
 
-def evaluate_jpeg(request_path, *, opt_in=False):
+PROCESSING_MODES = ('registered-boxes', 'independent-boxes', 'whole-frame')
+
+
+def evaluate_jpeg(request_path, *, opt_in=False, processing_mode=None):
+    started = perf_counter()
     out = dict(schema='EXPLORATORY_JPEG_DIAGNOSTIC_V1', mode='EXPLORATORY_JPEG', status='UNKNOWN',
                production_decision='NOT_CALIBRATED', scientific_decision='UNKNOWN',
                correction='NOT_APPLIED', radiometric_compatibility='UNKNOWN',
@@ -38,6 +43,8 @@ def evaluate_jpeg(request_path, *, opt_in=False):
                limitations=['UNKNOWN_JPEG_ISP_RESPONSE_AND_GAMMA', 'LOSSY_COMPRESSION',
                             'CROSS_CAMERA_RADIOMETRY_UNVERIFIED', 'NO_COVARIANCE_OR_UNCERTAINTY_MODEL',
                             'ENGINEERING_REGISTRATION_IS_NOT_PHYSICAL_ALIGNMENT_PROOF'])
+    out['timing_seconds'] = dict(input_decode_statistics=0.0, registration=0.0,
+                                measurement=0.0, total=0.0)
     out['runtime'] = dict(python=sys.version.split()[0], numpy=np.__version__, opencv=cv2.__version__,
                           opencv_build_sha256=sha(cv2.getBuildInformation().encode()))
     try:
@@ -51,6 +58,21 @@ def evaluate_jpeg(request_path, *, opt_in=False):
         out['provenance']['request_sha256'] = sha(raw)
         require(request['schema'] == 'EXPLORATORY_JPEG_TRIPLET_V1'
                 and request['mode'] == 'EXPLORATORY_JPEG', 'EXPLICIT_JPEG_REQUEST_REQUIRED')
+        declared = request.get('processing_mode')
+        require(processing_mode is None or processing_mode in PROCESSING_MODES, 'PROCESSING_MODE_INVALID')
+        require(declared is None or declared in PROCESSING_MODES, 'PROCESSING_MODE_INVALID')
+        require(processing_mode is None or declared is None or processing_mode == declared,
+                'PROCESSING_MODE_CONFLICT')
+        selected = processing_mode or declared or 'registered-boxes'
+        out['processing_mode'] = selected
+        if selected != 'registered-boxes':
+            require(all(request.get(key) is None for key in
+                        ('eligibility', 'source_mask', 'background_mask', 'provisional_regions')),
+                    'REGISTERED_FIELDS_NOT_ALLOWED_IN_NATIVE_MODE')
+            if selected == 'whole-frame':
+                require(request.get('independent_regions') is None, 'WHOLE_FRAME_DOES_NOT_USE_REGIONS')
+        else:
+            require(request.get('independent_regions') is None, 'NATIVE_REGIONS_NOT_ALLOWED_IN_REGISTERED_MODE')
         require(request['correction_policy'] == 'NONE_UNVERIFIED'
                 and request.get('correction') is None, 'JPEG_CALIBRATION_COMPATIBILITY_NOT_ESTABLISHED')
         require(type(request['calibration_reason']) is str and request['calibration_reason'].strip(),
@@ -59,8 +81,10 @@ def evaluate_jpeg(request_path, *, opt_in=False):
         out['reason_codes'].append('CALIBRATION_NOT_APPLIED_COMPATIBILITY_UNVERIFIED')
         channels = request['channels']
         require(type(channels) is list and len(channels) == 3
-                and {c['wavelength_nm'] for c in channels} == {770, 750, 780}
-                and len({c['camera_id'] for c in channels}) == 3, 'WAVELENGTH_OR_CAMERA_MAPPING')
+                and all(type(c) is dict and type(c.get('camera_id')) is str for c in channels)
+                and {c['camera_id'] for c in channels} == {'0', '1', '2'}
+                and {c['camera_id']: c.get('wavelength_nm') for c in channels}
+                    == {'0':770, '1':750, '2':780}, 'WAVELENGTH_OR_CAMERA_MAPPING')
         channels = sorted(channels, key=lambda c: (770, 750, 780).index(c['wavelength_nm']))
         images, hashes = [], []
         for channel in channels:
@@ -81,14 +105,32 @@ def evaluate_jpeg(request_path, *, opt_in=False):
                 grayscale_rule='OPENCV_BGR2GRAY' if decoded.ndim == 3 else 'MONO_UNCHANGED'))
             images.append(mono)
         out['provenance']['image_sha256s'] = hashes
+        out['timing_seconds']['input_decode_statistics'] = perf_counter() - started
+        if selected != 'registered-boxes':
+            from .native_modes import evaluate_native
+            out['registration'] = dict(state='NOT_REQUESTED', reason='NATIVE_MODE_NO_REGISTRATION')
+            out['limitations'].extend(['NO_SHARED_GEOMETRIC_SUPPORT', 'FIELD_OF_VIEW_AND_PIXEL_SCALE_UNVERIFIED'])
+            measured = perf_counter()
+            try:
+                out['provisional'] = evaluate_native(images, channels, selected,
+                                                     request.get('independent_regions'))
+            finally:
+                out['timing_seconds']['measurement'] = perf_counter() - measured
+            out['reason_codes'].append('NATIVE_MODE_PROVISIONAL_ONLY')
+            return out
         # Unit gain/zero offset ONLY encode unchanged JPEG values into the frozen
         # fixed-point representation. They are not estimated/applied calibration.
         shape = images[0].shape
         gains = [np.ones(shape, np.float32) for _ in range(3)]
         darks = [np.zeros(shape, np.float32) for _ in range(3)]
-        view, geometry = register(images, gains, darks, diagnostics=out['registration'])
+        registration_started = perf_counter()
+        try:
+            view, geometry = register(images, gains, darks, diagnostics=out['registration'])
+        finally:
+            out['timing_seconds']['registration'] = perf_counter() - registration_started
         out['geometry'] = geometry
         out['registration']['state'] = 'ACCEPTED_ENGINEERING_ONLY'
+        measured = perf_counter()
         if request.get('provisional_regions') is not None:
             from .provisional import evaluate_regions
             provisional = evaluate_regions(view, request['provisional_regions'])
@@ -102,6 +144,7 @@ def evaluate_jpeg(request_path, *, opt_in=False):
                     return value.replace('CORRECTED_DN', 'JPEG_CODE_VALUE_PROXY')
                 return value
             out['provisional'] = proxy_units(provisional)
+            out['timing_seconds']['measurement'] = perf_counter() - measured
         if request.get('eligibility') is None:
             out['reason_codes'].extend(['INDEPENDENT_ALIGNMENT_UNKNOWN', 'SOURCE_BACKGROUND_ELIGIBILITY_MISSING'])
             return out
@@ -124,6 +167,7 @@ def evaluate_jpeg(request_path, *, opt_in=False):
                     'APERTURE_REPRESENTATION')
             masks.append(mask)
         p, integrated, reasons = measure(view, *masks, evidence)
+        out['timing_seconds']['measurement'] = perf_counter() - measured
         # Frozen numerical code describes corrected-DN arrays. Relabel only the
         # report's units, never alter its arithmetic or claim calibrated values.
         def units(value):
@@ -148,4 +192,6 @@ def evaluate_jpeg(request_path, *, opt_in=False):
         out['reason_codes'].append(str(error) if isinstance(error, (Ineligible, L.MethodError))
                                   else 'INVALID_INPUT_OR_PROCESSING_FAILURE:'+type(error).__name__)
         out['registration'].setdefault('state', 'NOT_ACCEPTED')
+    finally:
+        out['timing_seconds']['total'] = perf_counter() - started
     return out

@@ -1,0 +1,80 @@
+{
+  "schema": "EXPLORATORY_JPEG_TRIPLET_V1",
+  "mode": "EXPLORATORY_JPEG",
+  "correction_policy": "NONE_UNVERIFIED",
+  "calibration_reason": "JPEG response and flat/dark compatibility are not established; no correction applied",
+  "channels": [
+    {
+      "path": "cam0_770.jpg",
+      "sha256": "REPLACE_WITH_FILE_SHA256",
+      "camera_id": "0",
+      "wavelength_nm": 770,
+      "acquisition": {
+        "exposure_us": null,
+        "gain": null,
+        "auto_exposure": null,
+        "capture_timestamp": null,
+        "timestamp_basis": null,
+        "focus": null,
+        "filter_id": null,
+        "optical_configuration": null,
+        "illumination": null,
+        "sequential_capture_span_ms": null
+      }
+    },
+    {
+      "path": "cam1_750.jpg",
+      "sha256": "REPLACE_WITH_FILE_SHA256",
+      "camera_id": "1",
+      "wavelength_nm": 750,
+      "acquisition": {
+        "exposure_us": null,
+        "gain": null,
+        "auto_exposure": null,
+        "capture_timestamp": null,
+        "timestamp_basis": null,
+        "focus": null,
+        "filter_id": null,
+        "optical_configuration": null,
+        "illumination": null,
+        "sequential_capture_span_ms": null
+      }
+    },
+    {
+      "path": "cam2_780.jpg",
+      "sha256": "REPLACE_WITH_FILE_SHA256",
+      "camera_id": "2",
+      "wavelength_nm": 780,
+      "acquisition": {
+        "exposure_us": null,
+        "gain": null,
+        "auto_exposure": null,
+        "capture_timestamp": null,
+        "timestamp_basis": null,
+        "focus": null,
+        "filter_id": null,
+        "optical_configuration": null,
+        "illumination": null,
+        "sequential_capture_span_ms": null
+      }
+    }
+  ],
+  "eligibility": null,
+  "provisional_regions": {
+    "schema": "PROVISIONAL_RECTANGLES_V1",
+    "source": [
+      640,
+      380,
+      760,
+      500
+    ],
+    "background": [
+      800,
+      380,
+      920,
+      500
+    ],
+    "selection_rationale": "REPLACE: these are illustrative coordinates, not test-day approvals. Define source/background from physical scene and continuum views."
+  },
+  "processing_mode": "registered-boxes"
+}

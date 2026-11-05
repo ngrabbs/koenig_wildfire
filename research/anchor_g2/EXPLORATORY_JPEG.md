@@ -3,6 +3,10 @@
 For user-defined provisional rectangles and a new output JSON file, see
 [NICK_TEST_DAY.md](NICK_TEST_DAY.md) and `example_jpeg_request.json`.
 Provisional numerical values are separate from independently eligible P/I fields.
+The optional `--processing-mode` selects `registered-boxes` (unchanged default),
+`independent-boxes` (per-camera native regions), or `whole-frame` (gross totals).
+Native modes do not register or compute P and never enter independent eligibility.
+See the test-day guide for mode-specific manifests, numerical guards and timing.
 
 ```powershell
 python -B -m research.anchor_g2 C:\NickData\jpeg_request.json --exploratory-jpeg
