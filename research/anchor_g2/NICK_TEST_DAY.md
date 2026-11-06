@@ -87,6 +87,64 @@ linear-image path and independent eligibility contracts are unchanged.
 
 ## Commands (repository root)
 
+### Draw native boxes with the optional Windows selector
+
+The selector uses Python's **Tkinter/Tcl/Tk**, not OpenCV GUI windows. No Pillow
+dependency is needed. The official Windows Python installation must include its
+optional Tcl/Tk component (inherited by the virtual environment). Check first:
+
+```powershell
+.\.venv-optiona\Scripts\python.exe -m tkinter
+```
+
+Close the Tk test window. From the repository root, select the original triplet:
+
+```powershell
+$py = '.\.venv-optiona\Scripts\python.exe'
+$d = 'C:\NickData\SetA_50us'
+$event = '20261014_175114_156'
+$images = @('--cam0', "$d\${event}_cam0_770nm.jpg", '--cam1', "$d\${event}_cam1_750nm.jpg", '--cam2', "$d\${event}_cam2_780nm.jpg")
+& $py -B -m research.anchor_g2.box_selector select @images --rationale 'Physical holder and comparable background; selected before examining spectral excess' --output "$d\manual-boxes-v1.json"
+```
+
+For each camera, select yellow **SOURCE** or blue **BACKGROUND**, then drag a box.
+Drag inside the selected box to move it or drag a corner to resize. Fit and 1:1
+views plus scrollbars preserve original-pixel coordinates. Reset clears the current
+camera. Empty, outside-image and overlapping boxes cannot be confirmed. Confirm
+each camera explicitly; the preset is saved only after the third confirmation.
+Closing early saves nothing. To redo an already confirmed camera, close and restart.
+The provided reference coordinates are not preloaded or treated as approvals.
+
+Reuse the preset on this triplet, or change `$event`/`$d` and rebuild `$images` for
+a new triplet. Reinspect scene placement first: matching dimensions do not prove
+matching physical coverage. Camera flags explicitly declare wavelengths; conflicting
+`camN_NNNnm` filename tags are rejected. Untagged filenames require correct operator
+mapping, which image content alone cannot verify.
+
+```powershell
+& $py -B -m research.anchor_g2.box_selector apply @images --preset "$d\manual-boxes-v1.json" --acknowledge-unverified-reuse --output "$d\manual-independent-v1.json"
+& $py -B -m research.anchor_g2 "$d\manual-independent-v1.json" --exploratory-jpeg --processing-mode independent-boxes --output "$d\manual-result-v1.json"
+```
+
+Every output must be new; existing presets, manifests and results are refused.
+Original JPEGs are opened read-only, decoded without EXIF orientation rotation,
+and hashed. Presets store `[width,height]`, original-pixel rectangles (right/bottom
+exclusive), mapping, rationale and unverified warnings. Application verifies each
+camera's dimensions, recomputes hashes, and leaves acquisition fields null by default;
+neither the folder name nor filename establishes exposure/gain. Optional `--metadata`
+accepts a JSON file keyed by `"0"`, `"1"`, `"2"`, each containing only acquisition
+fields from the example manifest, e.g. `{"0":{"exposure_us":50},"1":{"exposure_us":50},"2":{"exposure_us":50}}`.
+Provide values only when documented; metadata remain user-supplied and unverified.
+No spectral result is shown during selection, no correction is applied, and manual
+confirmation never promotes scientific eligibility. The existing analysis command
+still returns exit 2 for usable provisional UNKNOWN output.
+
+Selector regression tests (in addition to the three suites above):
+
+```powershell
+& $py -B -m unittest research.anchor_g2.test_box_selector -v
+```
+
 ```powershell
 .\.venv-optiona\Scripts\python.exe -B -m research.anchor_g2 C:\NickData\registered.json --exploratory-jpeg --processing-mode registered-boxes --output C:\NickData\registered-result.json
 .\.venv-optiona\Scripts\python.exe -B -m research.anchor_g2 C:\NickData\independent.json --exploratory-jpeg --processing-mode independent-boxes --output C:\NickData\independent-result.json
