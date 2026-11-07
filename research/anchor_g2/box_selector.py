@@ -119,6 +119,8 @@ def apply_preset(preset, triplet, metadata=None):
 
 class Selector:
     """Tk canvas; resizing/moving is always translated back to native pixels."""
+    confirm_label = 'Confirm camera / next'
+    footer = 'Unverified physical correspondence. Closing before all 3 confirmations saves nothing.'
     def __init__(self, root, triplet, rationale, output):
         import tkinter as tk
         from tkinter import messagebox
@@ -141,7 +143,7 @@ class Selector:
                            background=color).pack(side='left')
         for label, command in [('Fit', lambda: self.show(fit=True)),
                                ('1:1', lambda: self.show(scale=1)),
-                               ('Reset camera', self.reset), ('Confirm camera / next', self.confirm)]:
+                               ('Reset camera', self.reset), (self.confirm_label, self.confirm)]:
             tk.Button(bar, text=label, command=command).pack(side='left')
         frame = tk.Frame(root); frame.pack(fill='both', expand=True)
         self.canvas = tk.Canvas(frame, width=1000, height=650, background='#333333',
@@ -153,7 +155,7 @@ class Selector:
         xscroll.grid(row=1, column=0, sticky='ew')
         frame.rowconfigure(0, weight=1); frame.columnconfigure(0, weight=1)
         tk.Label(root, textvariable=self.status, wraplength=950).pack()
-        tk.Label(root, text='Unverified physical correspondence. Closing before all 3 confirmations saves nothing.').pack()
+        tk.Label(root, text=self.footer).pack()
         self.canvas.bind('<ButtonPress-1>', self.press)
         self.canvas.bind('<B1-Motion>', self.motion)
         self.canvas.bind('<ButtonRelease-1>', self.release)
@@ -306,12 +308,12 @@ class Selector:
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     sub = parser.add_subparsers(dest='command', required=True)
-    for name in ('select', 'apply'):
+    for name in ('select', 'apply', 'select-registered', 'apply-registered'):
         cmd = sub.add_parser(name)
         for camera, wave in MAPPING.items():
             cmd.add_argument('--cam'+camera, required=True, help=f'Original {wave} nm JPEG; explicit camera mapping')
         cmd.add_argument('--output', required=True, type=Path, help='NEW JSON file only')
-        if name == 'select':
+        if name.startswith('select'):
             cmd.add_argument('--rationale', required=True)
         else:
             cmd.add_argument('--preset', required=True, type=Path)
@@ -322,6 +324,9 @@ def main(argv=None):
         require(not args.output.exists(), 'OUTPUT_ALREADY_EXISTS')
         require(args.output.parent.is_dir(), 'OUTPUT_PARENT_MISSING')
         triplet = load_triplet({c: getattr(args, 'cam'+c) for c in MAPPING})
+        if args.command.endswith('-registered'):
+            from .registered_selector import run
+            return run(args, triplet)
         if args.command == 'apply':
             preset = parse(read(args.preset, 1024*1024))
             metadata = parse(read(args.metadata, 1024*1024)) if args.metadata else None

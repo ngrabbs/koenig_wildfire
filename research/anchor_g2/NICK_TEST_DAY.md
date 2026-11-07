@@ -87,6 +87,66 @@ linear-image path and independent eligibility contracts are unchanged.
 
 ## Commands (repository root)
 
+### Option 1: draw shared boxes after ANCHOR_G2 registration
+
+From the repository root, identify a reference triplet of original JPEGs. This
+does not capture or alter images. The following uses the existing SetA triplet:
+
+```powershell
+$py = 'C:\NickData\.venv\Scripts\python.exe'
+$d = 'C:\NickData\SetA_50us'
+$event = '20261014_175114_156'
+$images = @('--cam0', "$d\${event}_cam0_770nm.jpg", '--cam1', "$d\${event}_cam1_750nm.jpg", '--cam2', "$d\${event}_cam2_780nm.jpg")
+& $py -B -m research.anchor_g2.box_selector select-registered @images --rationale 'Shared holder and comparable background; selected before examining spectral excess' --output "$d\registered-boxes-v1.json"
+```
+
+This command first runs the existing ANCHOR_G2 registration and acceptance checks.
+If accepted, it opens **one** selection window on the original camera-0/770-nm
+pixel grid (not a cropped/resized coordinate frame). The displayed reference is
+the grayscale 770 image; **magenta marks pixels outside all-channel common support**.
+It is not a spectral-excess display or a proof of physical alignment. The moving
+750/780 images use the unchanged transforms when analyzed.
+
+Draw one yellow SOURCE and one blue BACKGROUND rectangle. Move either by dragging
+inside it; resize by dragging a corner. Fit/1:1, scrolling and reset work as in
+Option 2. Confirm shared boxes to save. Both rectangles must be disjoint and
+entirely inside common support; no invalid pixels are trimmed. Closing without
+confirmation saves nothing. All output filenames must be new.
+
+Reuse on the reference triplet first:
+
+```powershell
+& $py -B -m research.anchor_g2.box_selector apply-registered @images --preset "$d\registered-boxes-v1.json" --acknowledge-unverified-reuse --output "$d\registered-manifest-v1.json"
+& $py -B -m research.anchor_g2 "$d\registered-manifest-v1.json" --exploratory-jpeg --processing-mode registered-boxes --output "$d\registered-result-v1.json"
+```
+
+For later captures, set `$event` to the actual new filename prefix, rebuild
+`$images` with the same expression above, and use fresh manifest/result filenames.
+Keep the original preset path. `apply-registered` recomputes registration for
+each new triplet; it never transfers old matrices. The analysis command checks
+registration and support again against hash-bound image bytes. Optional `--metadata`
+uses the same camera-keyed acquisition JSON format as Option 2 below; omitted
+settings remain unknown, not inferred from `50us` in the directory name.
+
+The preset records dimensions, reference camera/wavelength, coordinate convention,
+mapping, source-image hashes, registration evidence/common-support hash, and
+registration-code/runtime/configuration hashes. Application rejects incompatible
+reference grids or software configurations. These checks do **not** establish
+unchanged focus, optics, scene placement, timing, or cross-session physical coverage.
+Inspect those before reuse; redraw if needed. Presets are local provenance, not
+signed approvals. Software/runtime changes require a new checked reference preset.
+
+`REGISTRATION_FAILED`, `REFERENCE_FRAME_OR_CONFIGURATION_MISMATCH`, or
+`REGION_OUTSIDE_COMMON_SUPPORT_NO_PIXELS_DROPPED` stops preset application without
+writing a manifest. Do not force rejected geometry or move boxes to maximize excess.
+A valid manifest still produces provisional JPEG diagnostics, UNKNOWN /
+NOT_CALIBRATED, with strict P/I unavailable; numerical ratios can remain undefined.
+Exit 2 from analysis can accompany usable provisional output—inspect its reason codes.
+
+```powershell
+& $py -B -m unittest research.anchor_g2.test_adapter research.anchor_g2.test_exploratory_jpeg research.anchor_g2.test_modes research.anchor_g2.test_box_selector research.anchor_g2.test_registered_selector -v
+```
+
 ### Draw native boxes with the optional Windows selector
 
 The selector uses Python's **Tkinter/Tcl/Tk**, not OpenCV GUI windows. No Pillow
